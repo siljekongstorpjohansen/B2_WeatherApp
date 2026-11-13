@@ -25,7 +25,7 @@
 
 | Course | Lab | Platform | Language / UI | Grade target |
 | ------ | --- | -------- | ------------- | ------------ |
-| HI1033 | B:2 — Native Weather App | iOS (iPhone + iPad) | Swift / SwiftUI, Xcode | A / VG |
+| CM2023 | B:2 — Native Weather App | iOS (iPhone + iPad) | Swift / SwiftUI, Xcode | A / VG |
 
 | Item | Choice |
 | ---- | ------ |
@@ -209,8 +209,8 @@ Status: ☐ not started · ◐ in progress · ☑ done (student can explain it)
 
 | Date | Decision | Alternatives considered | Reason | Req IDs |
 | ---- | -------- | ----------------------- | ------ | ------- |
-| 2026-11-13 | Platform: iOS, Swift/SwiftUI | Android (Kotlin/Compose), React Native | _students fill in_ | — |
-| 2026-11-13 | APIs: Open-Meteo + geocode.maps.co | SMHI + SMHI autocomplete | _students fill in_ | W-10, W-11 |
+| 2026-11-13 | Platform: iOS, Swift/SwiftUI | Android (Kotlin/Compose), React Native | Choosen because I have a mac and an Iphone, makes the testing process easier| — |
+| 2026-11-13 | APIs: Open-Meteo + geocode.maps.co | SMHI + SMHI autocomplete | Get more data to work with and more rekevant because my hometown is not in Sweden | W-10, W-11 |
 | 2026-11-13 | Architecture: MVVM + Repository, no third-party packages | — | Course recommendation; testable layers | W-30 |
 
 ---
@@ -272,7 +272,7 @@ Run after **every** AI session:
 
 | Item | Details |
 | ---- | ------- |
-| Tools | Claude Code (Claude Opus 5.5) — _add others if used_ |
+| Tools | Claude Code (Claude Opus 5.5) |
 | Context files loaded each session | `SPEC.md`, `STYLE.md`, `CONTEXT.md` |
 | AI-assisted parts | Initial `SPEC.md` draft (2026-11-13) — _keep updated per component_ |
 | Representative prompts | See `docs/LLM_PROCESS.md` |
