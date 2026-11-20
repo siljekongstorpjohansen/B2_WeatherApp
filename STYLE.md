@@ -120,7 +120,7 @@ One primary type per file, named after the type.
 
 ## 7. Testing
 
-- Swift Testing or XCTest — pick one (depends on `SPEC.md` §7 #5).
+- Swift Testing for unit tests, XCTest for UI tests (`SPEC.md` §8, 2026-11-20).
 - Behaviour-based names: `parserReturnsSevenDaysForValidResponse`. Arrange / Act / Assert, one behaviour per test.
 - Parser tests use real saved JSON from `Fixtures/`; ViewModel tests use a fake repository — no real network.
 - Each key test gets a **mutation test** (break the code, confirm the test fails), recorded in `docs/TEST_REPORT.md`.
