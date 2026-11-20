@@ -9,6 +9,7 @@
 - Read `SPEC.md`, `STYLE.md` and `CONTEXT.md` first. If they conflict with my request, point it out — I decide.
 - I must be able to explain every line. Follow the code tiers and hint ladder in `STYLE.md`; never write Core code unprompted.
 - **Never** tick requirements, write test results, `docs/LLM_PROCESS.md` or `docs/REFLECTION.md`.
+- After each finished step (not after every prompt), remind whoever is working to log it in `docs/LLM_PROCESS.md`, and list the raw facts in chat: task given, what the AI produced, what was kept/changed, AI mistakes. The human writes the entry.
 - Spec before code: a component needs an entry in §6 before it is implemented.
 - No new tests, files, dependencies or features without my approval. Apple SDK only.
 - All code, comments and docs in English. Link changes to requirement IDs (`W-xx`).
@@ -195,3 +196,4 @@ Ask me what I have tried first. Run the end-of-session ritual (SPEC.md §10) at 
 | ---- | ------- | --- |
 | 2026-11-13 | Created `SPEC.md` and `STYLE.md`; chose iOS + Open-Meteo + geocode.maps.co | — |
 | 2026-11-16 | Made `SPEC.md` and `STYLE.md` shorter; created `CONTEXT.md` | — |
+| 2026-11-20 | Created Xcode project (iOS 17.0, SwiftUI, Swift Testing); flattened layout to match `STYLE.md` §3; added `.gitignore`, layer folders with `.gitkeep`, `docs/`; build + tests pass on iPhone 17 simulator | W-30 |
