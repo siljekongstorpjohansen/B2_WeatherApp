@@ -1,0 +1,12 @@
+# Xcode per-user state (window layout, breakpoints, schemes)
+xcuserdata/
+
+# Build output
+DerivedData/
+build/
+
+# macOS Finder metadata
+.DS_Store
+
+# API keys — never commit (STYLE.md §8, SPEC.md §7 #1)
+Secrets.xcconfig
