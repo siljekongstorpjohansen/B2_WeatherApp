@@ -121,7 +121,7 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 2. Persistence: `UserDefaults` + JSON or SwiftData?
 3. Which UI preferences in settings (units, theme, …)?
 4. Refresh rate: timer while visible, or refresh on open when cache is older than N min?
-5. Minimum iOS version?
+5. ~~Minimum iOS version?~~ → **iOS 17.0** (§8, 2026-11-20)
 6. Which Open-Meteo fields to use — and which to ignore (oral Q3)?
 
 ## 8. Decision log
@@ -131,6 +131,12 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | 2026-11-13 | iOS, Swift/SwiftUI | Android, React Native | Choosen because I have a mac and an Iphone, makes the testing process easier | — |
 | 2026-11-13 | Open-Meteo + geocode.maps.co | SMHI | Get more data to work with and more rekevant because my hometown is not in Sweden | W-10, W-11 |
 | 2026-11-13 | MVVM + Repository, no packages | — | Course recommendation; testable layers | W-30 |
+| 2026-11-20 | Minimum iOS 17.0 | iOS 27.2 (Xcode default) | Lowest version with `@Observable` (`STYLE.md` §5); runs on more devices | W-25 |
+| 2026-11-20 | Swift Testing for unit tests, XCTest for UI tests | XCTest only | Xcode default; clearer `#expect` syntax; settles `STYLE.md` §7 | W-23 |
+| 2026-11-20 | Xcode project at repo root (no extra `WeatherApp/` level) | Xcode's default nested folder | Matches `STYLE.md` §3; shorter paths | W-30, W-31 |
+| 2026-11-20 | Empty layer folders tracked with `.gitkeep`, excluded from build (`EXCLUDED_SOURCE_FILE_NAMES`) | No placeholders | Both of us get the full layout from git; Xcode 27 synced folders otherwise copy `.gitkeep` into the app and the build fails | W-30 |
+| 2026-11-20 | App entry struct named `WeatherApp` (same as module) | `WeatherAppApp` (Xcode default) | Matches `STYLE.md` §3; trade-off: `WeatherApp.X` module qualification no longer works | W-30 |
+| 2026-11-20 | `docs/LLM_PROCESS.md` written by us; AI only reminds + lists facts | AI drafts, we approve | Lab PDF p. 8: "The AI must NEVER write this file" | W-26 |
 
 ## 9. Oral exam map
 
