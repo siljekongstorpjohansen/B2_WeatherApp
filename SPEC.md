@@ -145,6 +145,7 @@ Landscape / iPad: current conditions on the left, hourly + 7-day list on the rig
 4. Refresh rate: timer while visible, or refresh on open when cache is older than N min?
 5. ~~Minimum iOS version?~~ → **iOS 17.0** (§8, 2026-11-20)
 6. Which Open-Meteo fields to use — and which to ignore (oral Q3)?
+7. Move the repo out of iCloud-synced `~/Documents`? (iCloud offloads `.git` files → push fails)
 
 ## 8. Decision log
 
@@ -160,6 +161,7 @@ Landscape / iPad: current conditions on the left, hourly + 7-day list on the rig
 | 2026-11-20 | App entry struct named `WeatherApp` (same as module) | `WeatherAppApp` (Xcode default) | Matches `STYLE.md` §3; trade-off: `WeatherApp.X` module qualification no longer works | W-30 |
 | 2026-11-20 | `docs/LLM_PROCESS.md` written by us; AI only reminds + lists facts | AI drafts, we approve | Lab PDF p. 8: "The AI must NEVER write this file" | W-26 |
 | 2026-11-23 | Start screen = search + current + hourly + 7-day on one screen, tab bar for Favourites/Settings (§6) | Separate search screen before forecast | _fill in_ | W-02, W-05, W-33 |
+| 2026-11-23 | Personal signing settings (`DEVELOPMENT_TEAM`, bundle ID) stay local, not committed | Commit one person's settings | Committing one person's team ID breaks signing for the other | W-25 |
 
 ## 9. Oral exam map
 
@@ -226,4 +228,4 @@ Ask me what I have tried first. Run the end-of-session ritual (SPEC.md §10) at 
 | 2026-11-13 | Created `SPEC.md` and `STYLE.md`; chose iOS + Open-Meteo + geocode.maps.co | — |
 | 2026-11-16 | Made `SPEC.md` and `STYLE.md` shorter; created `CONTEXT.md` | — |
 | 2026-11-20 | Created Xcode project (iOS 17.0, SwiftUI, Swift Testing); flattened layout to match `STYLE.md` §3; added `.gitignore`, layer folders with `.gitkeep`, `docs/`; build + tests pass on iPhone 17 simulator | W-30 |
-| 2026-11-23 | Re-saved Open-Meteo fixtures; designed start screen and added its spec (§6); built start-screen UI with sample data (`Design/` tokens, `View/Components/`, `View/Search/`) on branch `UI`; build passes | W-10, W-02, W-32, W-33 |
+| 2026-11-23 | Re-saved Open-Meteo fixtures; designed start screen and added its spec (§6); built start-screen UI with sample data (`Design/` tokens, `View/Components/`, `View/Search/`) on branch `UI`; build passes; pushed to `origin/UI` (push first failed because iCloud had offloaded repo files) | W-10, W-02, W-32, W-33 |
