@@ -6,7 +6,8 @@ import SwiftUI
 /// content (forecast, loading, message) from its state.
 struct SearchView: View {
     @State private var searchText = ""
-    @State private var selectedFavourite: String? = SampleData.favouriteNames.first
+    /// Owned by `ContentView`, so the Favourites tab can choose which place to show.
+    @Binding var selectedFavourite: String?
     @State private var isFavourite = true
 
     var body: some View {
@@ -41,5 +42,5 @@ struct SearchView: View {
 }
 
 #Preview {
-    SearchView()
+    SearchView(selectedFavourite: .constant(SampleData.favouriteNames.first))
 }

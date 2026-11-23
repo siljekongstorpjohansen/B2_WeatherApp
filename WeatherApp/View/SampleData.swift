@@ -5,7 +5,21 @@ import Foundation
 /// Symbols use the outlined cloud variants: with `.multicolor`, the `.fill` clouds are white
 /// and disappear on light backgrounds.
 enum SampleData {
-    static let favouriteNames = ["Stockholm", "Oslo", "Bergen"]
+    static var favouriteNames: [String] { favourites.map(\.placeName) }
+
+    static var favourites: [Favourite] {
+        let day: TimeInterval = 24 * 60 * 60
+        return [
+            Favourite(placeName: "Stockholm", latitude: 59.33, longitude: 18.07,
+                      dateAdded: .now.addingTimeInterval(-20 * day), openCount: 14),
+            Favourite(placeName: "Oslo", latitude: 59.91, longitude: 10.75,
+                      dateAdded: .now.addingTimeInterval(-9 * day), openCount: 5),
+            Favourite(placeName: "Bergen", latitude: 60.39, longitude: 5.32,
+                      dateAdded: .now.addingTimeInterval(-2 * day), openCount: 5),
+            Favourite(placeName: "Ålesund", latitude: 62.47, longitude: 6.15,
+                      dateAdded: .now.addingTimeInterval(-1 * day), openCount: 0),
+        ]
+    }
 
     static var conditions: CurrentConditionsView.Conditions {
         CurrentConditionsView.Conditions(
