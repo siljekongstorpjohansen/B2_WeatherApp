@@ -62,12 +62,17 @@ The oral exam is the main criterion for the higher grade.
 - `hourly` and `daily` are **parallel arrays** (`time[i]` belongs to `temperature_2m[i]`) — the parser has to zip them.
 - `weather_code` uses WMO codes (0 = clear, 61 = rain, 95 = thunderstorm, …) → map to icons in one place.
 - `timezone=auto` returns local times without an offset; needed to find "today".
-- Free for non-commercial use with a daily request limit — use saved fixtures during development.
+- Free for non-commercial use. Response headers show `X-RateLimit-Limit: 600` per 60 s — still use saved fixtures during development.
+- Verified on real responses (2026-11-23, saved in `WeatherAppTests/Fixtures/`):
+  - `hourly` covers **all 7 days** (168 entries), not just today — "today only" is our own grouping.
+  - Times look like `2026-11-23T08:45` — **no seconds, no offset**; `ISO8601DateFormatter` defaults won't parse it.
+  - Default units: °C, km/h, mm, %. `current` is a 15-min value (`interval: 900`).
+  - Errors return HTTP 400 with `{"error": true, "reason": "..."}`.
 
 ### geocode.maps.co (place search)
 
 - Endpoint: `https://geocode.maps.co/search?q={place}&api_key={key}`
-- **Requires a free API key** → keep it out of git (`SPEC.md` §7 #1). Free tier is rate-limited (≈ 1 request/second — check the account dashboard).
+- **Requires a free API key** — without it: HTTP 401 `Missing API Key`. Keep it out of git (`SPEC.md` §7 #1). Free tier is rate-limited (≈ 1 request/second — check the account dashboard).
 - Returns a JSON array; `lat` and `lon` are **strings**, `display_name` is the full place name. An empty array means no results.
 - Rate limiting means no search-as-you-type without debouncing.
 

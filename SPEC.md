@@ -122,6 +122,28 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | `WeatherRepository` · `LiveWeatherRepository` · `FakeWeatherRepository` | One entry point for ViewModels: `searchPlaces(matching:)`, `forecast(for:)`, both `throws(NetworkError)`. Live = service + parser, off the main actor (search fixed to Stockholm until API key); Fake = canned results/errors for tests and previews | `ParseError` → `.decoding`; network errors pass through (no cache yet) | W-22, W-23, W-30 |
 | `FavouritesViewModel` / `SettingsViewModel` | Empty placeholders | — | W-04–W-06 |
 
+### Screen: `SearchView` (start screen) — W-02, W-04, W-05, W-12–W-15, W-17, W-18, W-20, W-33
+
+Layout, top to bottom:
+
+1. **Search field** — one field for city or `lat, lon` (placeholder `City or 59.33, 18.07`); `CoordinateValidator` decides which.
+2. **Favourite chips** — horizontal row, tap to switch place.
+3. **Current conditions** — place name + ★ toggle, large temperature, condition icon/text, high/low, wind, "Updated HH:mm".
+4. **Today** — horizontal hourly strip (next 24 h from `hourly`).
+5. **7 days** — scrollable list: day, icon, min–max bar, chevron → `DayDetailView`.
+6. **Tab bar** — Weather · Favourites · Settings.
+
+| State | What the user sees |
+| ----- | ------------------ |
+| First launch | Search field + "Find your weather — search for a city or enter coordinates." |
+| Loading | Previous data dimmed + spinner (never a blank screen) |
+| Loaded | Full layout above |
+| Offline, cached | Yellow banner "You're offline. Showing data from HH:mm." above cached forecast |
+| Error, no cache | "Couldn't load the forecast" + "Try again" button |
+| No search results | "No places found for '…'" under the search field |
+
+Landscape / iPad: current conditions on the left, hourly + 7-day list on the right.
+
 **Test ideas:** valid fixture → 7 days · missing field → error · `"59.33, 18.06"` valid · `"91, 0"` invalid · empty geocode result → "no results" state.
 
 ## 7. Open questions
@@ -132,6 +154,7 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 4. Refresh rate: timer while visible, or refresh on open when cache is older than N min?
 5. ~~Minimum iOS version?~~ → **iOS 17.0** (§8, 2026-11-20)
 6. Which Open-Meteo fields to use — and which to ignore (oral Q3)?
+7. Move the repo out of iCloud-synced `~/Documents`? (iCloud offloads `.git` files → push fails)
 
 ## 8. Decision log
 
@@ -147,7 +170,7 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | 2026-11-20 | App entry struct named `WeatherApp` (same as module) | `WeatherAppApp` (Xcode default) | Matches `STYLE.md` §3; trade-off: `WeatherApp.X` module qualification no longer works | W-30 |
 | 2026-11-20 | `docs/LLM_PROCESS.md` written by us; AI only reminds + lists facts | AI drafts, we approve | Lab PDF p. 8: "The AI must NEVER write this file" | W-26 |
 | 2026-11-23 | Core tier: AI writes after my approval and explains part by part; hint ladder only on request | I write Core myself via the hint ladder | Streamlines production and mirrors how an LLM is used in a real production setting; learning still happens when AI-generated code is reviewed, approved and guided by the developer | W-26 |
-| 2026-11-23 | Walking skeleton first | Finish each layer fully before the next | Proves the architecture end to end early; every later step plugs into working code | W-30 |
+| 2026-11-23 | Skeleton first | Finish each layer fully before the next | Proves the architecture end to end early; every later step plugs into working code | W-30 |
 | 2026-11-23 | Wind speed stored in m/s; km/h only as a display setting (W-06) | km/h (Open-Meteo default) | m/s is the Swedish convention | W-06, W-12 |
 | 2026-11-23 | `WeatherCondition` keeps WMO intensity (light / moderate / heavy) | One case per type, no intensity | Easy to add now; more precise text and icons | W-12 |
 | 2026-11-23 | Request Open-Meteo default units (km/h); parser converts wind to m/s | Request `wind_speed_unit=ms` | Live request matches the shared fixture; conversion is a testable data transformation | W-12, W-23 |
@@ -159,6 +182,8 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | 2026-11-23 | Fixed Stockholm as search result until the API key is set up | Real geocoding now | geocode.maps.co needs a key kept out of git (§7 #1); unblocks the forecast path | W-11 |
 | 2026-11-23 | Repository throws only `NetworkError`; `ParseError` becomes `.decoding` | Untyped `throws` (ViewModel checks both types) | One error type for the ViewModel; bad data means the same to the user either way | W-22 |
 | 2026-11-23 | Real API proven by an opt-in live test (`LiveWeatherRepositoryTests`, runs only with `LIVE_API_TESTS=1`) | Temporary console print in `WeatherApp.swift` | No app file touched (no conflict with the UI branch); repeatable before submission; normal runs stay offline | W-10, W-27 |
+| 2026-11-23 | Start screen = search + current + hourly + 7-day on one screen, tab bar for Favourites/Settings (§6) | Separate search screen before forecast | _fill in_ | W-02, W-05, W-33 |
+| 2026-11-23 | Personal signing settings (`DEVELOPMENT_TEAM`, bundle ID) stay local, not committed | Commit one person's settings | Committing one person's team ID breaks signing for the other | W-25 |
 
 ## 9. Oral exam map
 
@@ -208,7 +233,7 @@ Opening question is always **Q26**. Fill in code location + test as components a
 
 - **Tools:** Claude Code (Claude Opus 5.5)
 - **Context loaded each session:** `CLAUDE.md`, which imports `SPEC.md`, `STYLE.md`, `CONTEXT.md` and `README.md`
-- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`; Xcode project setup
+- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`; Xcode project setup; start-screen UI boilerplate (`Design/`, `View/`); skeleton (`Model/`, `Data/`, `ViewModel/`) and its tests
 - **Code:** written by the AI after my approval, explained part by part (`STYLE.md` §2.1)
 - **Prompts and who-wrote-what:** see `docs/LLM_PROCESS.md`
 
@@ -226,4 +251,5 @@ Run the end-of-session ritual (SPEC.md §10) at the end.
 | 2026-11-13 | Created `SPEC.md` and `STYLE.md`; chose iOS + Open-Meteo + geocode.maps.co | — |
 | 2026-11-16 | Made `SPEC.md` and `STYLE.md` shorter; created `CONTEXT.md` | — |
 | 2026-11-20 | Created Xcode project (iOS 17.0, SwiftUI, Swift Testing); flattened layout to match `STYLE.md` §3; added `.gitignore`, layer folders with `.gitkeep`, `docs/`; build + tests pass on iPhone 17 simulator | W-30 |
-| 2026-11-23 | Walking skeleton (no views): real Open-Meteo forecast for fixed Stockholm through Model, DTO, parser, service, repository and ViewModel; 14 unit tests pass, opt-in live API test passes | W-10, W-12, W-19, W-21, W-22, W-23, W-30 |
+| 2026-11-23 | Re-saved Open-Meteo fixtures; designed start screen and added its spec (§6); built start-screen UI with sample data (`Design/` tokens, `View/Components/`, `View/Search/`) on branch `UI`; build passes; pushed to `origin/UI` (push first failed because iCloud had offloaded repo files) | W-10, W-02, W-32, W-33 |
+| 2026-11-23 | Skeleton (no views): real Open-Meteo forecast for fixed Stockholm through Model, DTO, parser, service, repository and ViewModel; 14 unit tests pass, opt-in live API test passes | W-10, W-12, W-19, W-21, W-22, W-23, W-30 |
