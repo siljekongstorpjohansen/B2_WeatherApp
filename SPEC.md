@@ -113,6 +113,28 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | `ForecastViewModel` | Search → geocode → fetch → state | Rapid searches, offline ± cache, refresh | W-02, W-17, W-34 |
 | `FavouritesStore` / `SettingsStore` | Persist favourites and preferences | — | W-04–W-06 |
 
+### Screen: `SearchView` (start screen) — W-02, W-04, W-05, W-12–W-15, W-17, W-18, W-20, W-33
+
+Layout, top to bottom:
+
+1. **Search field** — one field for city or `lat, lon` (placeholder `City or 59.33, 18.07`); `CoordinateValidator` decides which.
+2. **Favourite chips** — horizontal row, tap to switch place.
+3. **Current conditions** — place name + ★ toggle, large temperature, condition icon/text, high/low, wind, "Updated HH:mm".
+4. **Today** — horizontal hourly strip (next 24 h from `hourly`).
+5. **7 days** — scrollable list: day, icon, min–max bar, chevron → `DayDetailView`.
+6. **Tab bar** — Weather · Favourites · Settings.
+
+| State | What the user sees |
+| ----- | ------------------ |
+| First launch | Search field + "Find your weather — search for a city or enter coordinates." |
+| Loading | Previous data dimmed + spinner (never a blank screen) |
+| Loaded | Full layout above |
+| Offline, cached | Yellow banner "You're offline. Showing data from HH:mm." above cached forecast |
+| Error, no cache | "Couldn't load the forecast" + "Try again" button |
+| No search results | "No places found for '…'" under the search field |
+
+Landscape / iPad: current conditions on the left, hourly + 7-day list on the right.
+
 **Test ideas:** valid fixture → 7 days · missing field → error · `"59.33, 18.06"` valid · `"91, 0"` invalid · empty geocode result → "no results" state.
 
 ## 7. Open questions
@@ -137,6 +159,7 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | 2026-11-20 | Empty layer folders tracked with `.gitkeep`, excluded from build (`EXCLUDED_SOURCE_FILE_NAMES`) | No placeholders | Both of us get the full layout from git; Xcode 27 synced folders otherwise copy `.gitkeep` into the app and the build fails | W-30 |
 | 2026-11-20 | App entry struct named `WeatherApp` (same as module) | `WeatherAppApp` (Xcode default) | Matches `STYLE.md` §3; trade-off: `WeatherApp.X` module qualification no longer works | W-30 |
 | 2026-11-20 | `docs/LLM_PROCESS.md` written by us; AI only reminds + lists facts | AI drafts, we approve | Lab PDF p. 8: "The AI must NEVER write this file" | W-26 |
+| 2026-11-23 | Start screen = search + current + hourly + 7-day on one screen, tab bar for Favourites/Settings (§6) | Separate search screen before forecast | _fill in_ | W-02, W-05, W-33 |
 
 ## 9. Oral exam map
 
@@ -186,7 +209,7 @@ Opening question is always **Q26**. Fill in code location + test as components a
 
 - **Tools:** Claude Code (Claude Opus 5.5)
 - **Context loaded each session:** `SPEC.md`, `STYLE.md`, `CONTEXT.md`
-- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`
+- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`; start-screen UI boilerplate (`Design/`, `View/`)
 - **Prompts and who-wrote-what:** see `docs/LLM_PROCESS.md`
 
 Session start prompt:
@@ -203,3 +226,4 @@ Ask me what I have tried first. Run the end-of-session ritual (SPEC.md §10) at 
 | 2026-11-13 | Created `SPEC.md` and `STYLE.md`; chose iOS + Open-Meteo + geocode.maps.co | — |
 | 2026-11-16 | Made `SPEC.md` and `STYLE.md` shorter; created `CONTEXT.md` | — |
 | 2026-11-20 | Created Xcode project (iOS 17.0, SwiftUI, Swift Testing); flattened layout to match `STYLE.md` §3; added `.gitignore`, layer folders with `.gitkeep`, `docs/`; build + tests pass on iPhone 17 simulator | W-30 |
+| 2026-11-23 | Re-saved Open-Meteo fixtures; designed start screen and added its spec (§6); built start-screen UI with sample data (`Design/` tokens, `View/Components/`, `View/Search/`) on branch `UI`; build passes | W-10, W-02, W-32, W-33 |
