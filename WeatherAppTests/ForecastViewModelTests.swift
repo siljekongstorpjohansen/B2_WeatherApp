@@ -33,6 +33,20 @@ struct ForecastViewModelTests {
         #expect(isFailed)
     }
 
+    @Test func retryRepeatsLastSearchAfterFailure() async throws {
+        let forecast = try loadFixtureForecast()
+        let repository = SequenceRepository(forecastResults: [.failure(.offline), .success(forecast)])
+        let viewModel = ForecastViewModel(repository: repository, now: { Self.fixtureNow })
+        await viewModel.search("Stockholm")
+        let failedFirst = if case .failed = viewModel.state { true } else { false }
+
+        await viewModel.retry()
+
+        #expect(failedFirst)
+        let isLoaded = if case .loaded = viewModel.state { true } else { false }
+        #expect(isLoaded)
+    }
+
     // MARK: - ForecastDisplay (data transformation)
 
     @Test func displayStartsHoursAtCurrentHourAndShowsTwentyFour() throws {
@@ -83,3 +97,22 @@ struct ForecastViewModelTests {
 
 /// Lets `Bundle(for:)` find the test bundle, where Xcode copies `Fixtures/`.
 private final class BundleToken {}
+
+/// Gives one forecast result per call, in order — so a test can fail first and succeed on retry.
+/// An `actor` because it changes its own list from async calls.
+private actor SequenceRepository: WeatherRepository {
+    private var forecastResults: [Result<Forecast, NetworkError>]
+
+    init(forecastResults: [Result<Forecast, NetworkError>]) {
+        self.forecastResults = forecastResults
+    }
+
+    func searchPlaces(matching query: String) async throws(NetworkError) -> [Place] {
+        [.stockholm]
+    }
+
+    func forecast(for place: Place) async throws(NetworkError) -> Forecast {
+        guard !forecastResults.isEmpty else { throw .unknown }
+        return try forecastResults.removeFirst().get()
+    }
+}
