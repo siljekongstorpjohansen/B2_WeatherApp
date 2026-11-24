@@ -1,0 +1,8 @@
+// Build settings for the WeatherApp target (SPEC.md §8, 2026-11-24, W-11).
+//
+// Secrets.xcconfig holds the geocode.maps.co key and is git-ignored.
+// "#include?" makes it optional: a fresh clone without it still builds; searches then fail with 401.
+#include? "Secrets.xcconfig"
+
+// Extra Info.plist keys (GeocodingAPIKey), merged with the generated Info.plist.
+INFOPLIST_FILE = Config/Info.plist

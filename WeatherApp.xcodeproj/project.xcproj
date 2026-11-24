@@ -11,6 +11,16 @@
     ],
   },
   "files": [
+    {
+      "kind": "group",
+      "path": "Config",
+      "children": [
+        { "path": "Info.plist" },
+        { "path": "Secrets.xcconfig" },
+        { "path": "Secrets.example.xcconfig" },
+        { "path": "WeatherApp.xcconfig" },
+      ],
+    },
     { "kind": "folder", "path": "WeatherApp", "target-membership": [ "WeatherApp" ] },
     { "kind": "folder", "path": "WeatherAppTests", "target-membership": [ "WeatherAppTests" ] },
     { "kind": "folder", "path": "WeatherAppUITests", "target-membership": [ "WeatherAppUITests" ] },
@@ -30,6 +40,10 @@
       "id": "E8E3FEA730B0968B0028B741",
       "product": "Products/WeatherApp.app",
       "product-type": "application",
+      "specialized-configurations": [
+        { "name": "Debug", "file": "Config/WeatherApp.xcconfig" },
+        { "name": "Release", "file": "Config/WeatherApp.xcconfig" },
+      ],
       "build-phases": [
         "compile-sources",
         "frameworks",
