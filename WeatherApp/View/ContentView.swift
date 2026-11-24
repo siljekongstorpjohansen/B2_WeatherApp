@@ -41,5 +41,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView(forecastViewModel: ForecastViewModel(repository: LiveWeatherRepository()))
+    ContentView(forecastViewModel: ForecastViewModel(repository: LiveWeatherRepository.configured()))
 }
