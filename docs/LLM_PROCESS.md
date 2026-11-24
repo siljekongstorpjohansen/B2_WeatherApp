@@ -77,22 +77,25 @@ The purpose was to start creating the UI so it can be testes and also make it po
 **Observations**
 - ...
 ---
-### 3.3 Update the UI
+### 3.3 Update the UI and create functional screens
 
 **Date:** [24.november 2026]
 
 **AI Tool:** [Claude]
 
 **Purpose:**
-The purpose of todays session was to keep working on the UI to make the app work in the best way and to follow the requirements for the assignement. 
+The purpose of todays session was to keep working on the UI to make the app work in the best way and to follow the requirements for the assignement. Also to update the UI to work in a functional way. 
 
 **Example of Prompts:**
 - Start by: creating a detal view for the wether app it should show a full forecast for a selected day, including temperature, weather condition, and any additional data your chosen API provides.
 - We go back to the favorites screen now, when i tap one of the favorites on my screen a quick view of the weather forcast fropm this place shows up. Implement that in the code
 - Now go trough the whole UI code and clean it up, refactory. Make the code readable with suitable variable names but keep the same useability. Remove any unnecessary code
+- Go over to the favorites and settings page and make them actually work. Add functions to the buttons
+- In the home screen, add if the degrees are dispayed in celsius or farenheit in a nice way. Also add storage of the latest forecast so it can be displayed if the phone is offline when opening the phone, do this accoridning to the SPEC instructions
 
 **What needed to be changed?**
-- I made some updates to the favorites view to get a better user experience and to follow the instructions for the assignements. 
+- I made some updates to the favorites view to get a better user experience and to follow the instructions for the assignements.
+- After testimg the settings on my phone I made som changes to the interface so it was more clear how the app worked for the user. 
 
 **Observations**
 - ...
