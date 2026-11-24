@@ -10,6 +10,11 @@ enum Spacing {
     static let xxl: CGFloat = 32
 }
 
+/// Maximum content widths, so lists don't stretch across a landscape iPhone or iPad (W-18).
+enum ReadableWidth {
+    static let list: CGFloat = 640
+}
+
 /// Corner radii, so every card and control has the same rounding.
 enum CornerRadius {
     static let control: CGFloat = 10

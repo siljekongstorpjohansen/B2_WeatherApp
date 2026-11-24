@@ -9,31 +9,30 @@ import SwiftUI
 
 /// Root of the app: one tab per main screen. Navigation lives in the View layer (STYLE.md §4).
 struct ContentView: View {
+    enum Tab: Hashable {
+        case weather, favourites, settings
+    }
+
+    @State private var selectedTab: Tab = .weather
+    /// The place shown on the Weather tab. Shared so the Favourites tab can switch it (W-05).
+    @State private var selectedPlaceName: String? = SampleData.favouriteNames.first
+
     var body: some View {
-        TabView {
-            SearchView()
+        TabView(selection: $selectedTab) {
+            SearchView(selectedFavourite: $selectedPlaceName)
                 .tabItem { Label("Weather", systemImage: "cloud.sun") }
+                .tag(Tab.weather)
 
-            // Placeholders until plan step 8 (W-05, W-06).
-            NavigationStack {
-                MessageStateView(
-                    title: "No favourites yet",
-                    message: "Tap the star next to a place to add it here.",
-                    systemImage: "star"
-                )
-                .navigationTitle("Favourites")
-            }
+            FavouritesView(onOpen: { favourite in
+                selectedPlaceName = favourite.placeName
+                selectedTab = .weather
+            })
             .tabItem { Label("Favourites", systemImage: "star") }
+            .tag(Tab.favourites)
 
-            NavigationStack {
-                MessageStateView(
-                    title: "Settings",
-                    message: "Refresh rate and units will be set here.",
-                    systemImage: "gearshape"
-                )
-                .navigationTitle("Settings")
-            }
-            .tabItem { Label("Settings", systemImage: "gearshape") }
+            SettingsView()
+                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tag(Tab.settings)
         }
     }
 }
