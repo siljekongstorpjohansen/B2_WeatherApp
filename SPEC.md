@@ -160,7 +160,7 @@ Landscape / iPad: current conditions on the left, hourly + 7-day list on the rig
 
 | Date | Decision | Alternatives | Reason | IDs |
 | ---- | -------- | ------------ | ------ | --- |
-| 2026-11-13 | iOS, Swift/SwiftUI | Android, React Native | Choosen because I have a mac and an Iphone, makes the testing process easier | — |
+| 2026-11-13 | iOS, Swift/SwiftUI | Android, React Native | Choosen because both team members have iphone and Mac | — |
 | 2026-11-13 | Open-Meteo + geocode.maps.co | SMHI | Get more data to work  | W-10, W-11 |
 | 2026-11-13 | MVVM + Repository, no packages | — | Course recommendation; testable layers | W-30 |
 | 2026-11-20 | Minimum iOS 17.0 | iOS 27.2 (Xcode default) | Lowest version with `@Observable` (`STYLE.md` §5); runs on more devices | W-25 |
