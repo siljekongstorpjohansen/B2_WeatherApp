@@ -11,6 +11,6 @@ nonisolated struct Place: Hashable, Sendable {
 }
 
 nonisolated extension Place {
-    /// Temporary fixed search result until geocoding has an API key (SPEC.md §8, W-11).
+    /// Default place: start-screen fallback before any favourite is chosen, and in tests and previews.
     static let stockholm = Place(name: "Stockholm", latitude: 59.33, longitude: 18.07)
 }

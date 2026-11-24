@@ -81,7 +81,7 @@ struct SearchView: View {
 #Preview {
     // Real Open-Meteo data in the canvas; every state with sample data is in `SearchScreenLayout`'s previews.
     SearchView(
-        viewModel: ForecastViewModel(repository: LiveWeatherRepository()),
+        viewModel: ForecastViewModel(repository: LiveWeatherRepository.configured()),
         selectedFavourite: .constant(SampleData.favouriteNames.first)
     )
 }
