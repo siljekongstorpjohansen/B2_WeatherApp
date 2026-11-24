@@ -17,15 +17,15 @@
 
 | Tier | What | Who writes | AI's role |
 | ---- | ---- | ---------- | --------- |
-| **Core** | `ForecastParser`, hourly/daily grouping, ViewModel state, error classification, cache fallback, `CoordinateValidator` | **Me** | Tutor + reviewer only, via hint ladder |
+| **Core** | `ForecastParser`, hourly/daily grouping, ViewModel state, error classification, cache fallback, `CoordinateValidator` | **AI**, after my approval | Tutor + writer: proposes, writes after my OK, explains every part as I go through it |
 | **Support** | Repository, services, storage, `ConnectivityMonitor`, navigation, unit tests | Shared | Drafts one small piece at a time; I read and can explain it |
 | **Boilerplate** | SwiftUI layout, styling, icons, previews, project setup, fixtures | AI | Writes directly, explains key parts |
 
 Unsure which tier? **Ask before writing.**
 
-### 2.2 Hint ladder (Core code)
+### 2.2 Hint ladder (on request)
 
-One step at a time; stop as soon as I can continue:
+Used only when I ask for it. One step at a time; stop as soon as I can continue:
 
 1. **Concept** — plain words + small example
 2. **Questions** — what must it guarantee, what can go wrong?
@@ -93,7 +93,7 @@ One primary type per file, named after the type.
 
 **Types and state**
 - `struct`/`enum` first; `final class` only for ViewModels and stores. `private` and `let` by default.
-- ViewModels are `@Observable` + `@MainActor`, with screen state as an `enum`, e.g. `idle / loading / loaded / failed` (exact shape is Core — mine to design).
+- ViewModels are `@Observable` + `@MainActor`, with screen state as an `enum`, e.g. `idle / loading / loaded / failed` (exact shape is Core — AI proposes, I approve).
 - No `!` or `try!` outside tests and previews.
 
 **Concurrency**
@@ -120,7 +120,7 @@ One primary type per file, named after the type.
 
 ## 7. Testing
 
-- Swift Testing or XCTest — pick one (depends on `SPEC.md` §7 #5).
+- Swift Testing for unit tests, XCTest for UI tests (`SPEC.md` §8, 2026-11-20).
 - Behaviour-based names: `parserReturnsSevenDaysForValidResponse`. Arrange / Act / Assert, one behaviour per test.
 - Parser tests use real saved JSON from `Fixtures/`; ViewModel tests use a fake repository — no real network.
 - Each key test gets a **mutation test** (break the code, confirm the test fails), recorded in `docs/TEST_REPORT.md`.
