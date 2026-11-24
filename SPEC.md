@@ -146,12 +146,35 @@ Landscape / iPad: current conditions on the left, hourly + 7-day list on the rig
 
 **Test ideas:** valid fixture → 7 days · missing field → error · `"59.33, 18.06"` valid · `"91, 0"` invalid · empty geocode result → "no results" state.
 
+### Screen: `FavouritesView` (Favourites tab) — W-04, W-05, W-18, W-33
+
+- **List** of favourite places: name, coordinates, and a subtitle that matches the sort order ("Opened 12 times" / "Added 3 Nov").
+- **Sort menu** in the toolbar: Most viewed (default) · A–Z · Recently added. Ties in "Most viewed" fall back to A–Z; A–Z uses locale-aware comparison (å/ä/ö).
+- **Tap** a place → its open count goes up by 1 and the app switches to the Weather tab showing that place.
+- **Swipe to delete** removes a favourite.
+- **Empty state:** "No favourites yet — tap the star next to a place to add it here."
+- Data: `Favourite` (Model) with `dateAdded` and `openCount`; sorting in `FavouriteSortOrder` (Support tier). Persisted later by `FavouritesStore`.
+- Landscape / iPad: the list keeps a readable width.
+
+### Screen: `SettingsView` (Settings tab) — W-06, W-18, W-32
+
+Grouped form, sections:
+
+1. **Units** — Temperature (°C / °F), Wind speed (km/h / m/s / mph). Sent to Open-Meteo as `temperature_unit` / `wind_speed_unit`.
+2. **Display** — Appearance (System / Light / Dark), Time format (24-hour / 12-hour).
+3. **Data** — Refresh forecast: "When older than" 15 / 30 / 60 min / Manual only. Footer explains: refreshed on open when the cached forecast is older (§7 #4).
+4. **About** — App version, data sources (Open-Meteo, geocode.maps.co).
+
+Changes apply immediately (no Save button). Values stored in `UserSettings` (Model), persisted later by `SettingsStore`.
+
+Landscape / iPad: two columns — Units + Display on the left, Data + About on the right.
+
 ## 7. Open questions
 
 1. Where to keep the geocode.maps.co API key out of git (`.xcconfig` in `.gitignore`?)
 2. Persistence: `UserDefaults` + JSON or SwiftData?
-3. Which UI preferences in settings (units, theme, …)?
-4. Refresh rate: timer while visible, or refresh on open when cache is older than N min?
+3. ~~Which UI preferences in settings (units, theme, …)?~~ → temperature unit, wind unit, appearance, time format (§6, 2026-11-23)
+4. ~~Refresh rate: timer while visible, or refresh on open when cache is older than N min?~~ → refresh on open when older than N min (§6, 2026-11-23)
 5. ~~Minimum iOS version?~~ → **iOS 17.0** (§8, 2026-11-20)
 6. Which Open-Meteo fields to use — and which to ignore (oral Q3)?
 7. Move the repo out of iCloud-synced `~/Documents`? (iCloud offloads `.git` files → push fails)
@@ -183,6 +206,10 @@ Landscape / iPad: current conditions on the left, hourly + 7-day list on the rig
 | 2026-11-23 | Repository throws only `NetworkError`; `ParseError` becomes `.decoding` | Untyped `throws` (ViewModel checks both types) | One error type for the ViewModel; bad data means the same to the user either way | W-22 |
 | 2026-11-23 | Real API proven by an opt-in live test (`LiveWeatherRepositoryTests`, runs only with `LIVE_API_TESTS=1`) | Temporary console print in `WeatherApp.swift` | No app file touched (no conflict with the UI branch); repeatable before submission; normal runs stay offline | W-10, W-27 |
 | 2026-11-23 | Start screen = search + current + hourly + 7-day on one screen, tab bar for Favourites/Settings (§6) | Separate search screen before forecast | _fill in_ | W-02, W-05, W-33 |
+| 2026-11-23 | Settings: °C/°F, wind unit, appearance, 12/24 h time | Fewer options | _fill in_ | W-06 |
+| 2026-11-23 | Refresh on open when cache older than 15/30/60 min or manual | Timer while screen visible | _fill in_ | W-06, W-16 |
+| 2026-11-23 | Favourites sortable by most viewed, A–Z, recently added; tap switches to Weather tab | Fixed order; open forecast inside Favourites tab | _fill in_ | W-05 |
+| 2026-11-23 | Favourite sorting is Support tier (AI drafts, we explain) | Core tier | _fill in_ | W-05, W-23 |
 | 2026-11-23 | Personal signing settings (`DEVELOPMENT_TEAM`, bundle ID) stay local, not committed | Commit one person's settings | Committing one person's team ID breaks signing for the other | W-25 |
 
 ## 9. Oral exam map
