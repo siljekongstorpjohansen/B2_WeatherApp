@@ -92,7 +92,7 @@ The oral exam is the main criterion for the higher grade.
 
 | Pitfall | How we avoid it |
 | ------- | --------------- |
-| AI writes Core code unnoticed | Core is listed in `STYLE.md` §2.1; explain-back after every piece |
+| AI writes Core code unnoticed | Core is listed in `STYLE.md` §2.1. Every time the AI writes Core code, it says so in the chat and lists exactly which files and functions it changed — not only in the editor's diff view. Explain-back after every piece |
 | AI takes over when I'm unsure | Hint ladder (`STYLE.md` §2.2) |
 | AI writes the reflection | Forbidden in `SPEC.md` §1; I keep running notes |
 | AI answers in the wrong language | English rule in `SPEC.md` §1 |
