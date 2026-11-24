@@ -55,6 +55,26 @@ The purpose was to start creating the UI so it can be testes and also make it po
 **Observations**
 - ...
 ---
+### 3.3 Update the UI
+
+**Date:** [24.november 2026]
+
+**AI Tool:** [Claude]
+
+**Purpose:**
+The purpose of todays session was to keep working on the UI to make the app work in the best way and to follow the requirements for the assignement. 
+
+**Example of Prompts:**
+- Start by: creating a detal view for the wether app it should show a full forecast for a selected day, including temperature, weather condition, and any additional data your chosen API provides.
+- We go back to the favorites screen now, when i tap one of the favorites on my screen a quick view of the weather forcast fropm this place shows up. Implement that in the code
+- Now go trough the whole UI code and clean it up, refactory. Make the code readable with suitable variable names but keep the same useability. Remove any unnecessary code
+
+**What needed to be changed?**
+- I made some updates to the favorites view to get a better user experience and to follow the instructions for the assignements. 
+
+**Observations**
+- ...
+---
 
 ## 4. Summary
 
