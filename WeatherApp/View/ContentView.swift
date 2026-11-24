@@ -9,6 +9,9 @@ import SwiftUI
 
 /// Root of the app: one tab per main screen. Navigation lives in the View layer (STYLE.md §4).
 struct ContentView: View {
+    /// Created in `WeatherApp`, which decides where the data comes from.
+    let forecastViewModel: ForecastViewModel
+
     enum Tab: Hashable {
         case weather, favourites, settings
     }
@@ -19,7 +22,7 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            SearchView(selectedFavourite: $selectedPlaceName)
+            SearchView(viewModel: forecastViewModel, selectedFavourite: $selectedPlaceName)
                 .tabItem { Label("Weather", systemImage: "cloud.sun") }
                 .tag(Tab.weather)
 
@@ -38,5 +41,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(forecastViewModel: ForecastViewModel(repository: LiveWeatherRepository()))
 }

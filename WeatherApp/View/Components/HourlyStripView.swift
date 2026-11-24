@@ -3,15 +3,7 @@ import SwiftUI
 /// Horizontal hour-by-hour strip for today (W-13).
 struct HourlyStripView: View {
     /// Plain values for one hour. Which hours count as "today" is decided before this view.
-    struct Hour: Identifiable {
-        let time: Date
-        let isNow: Bool
-        let symbolName: String
-        let conditionText: String
-        let temperature: Double
-
-        var id: Date { time }
-    }
+    typealias Hour = ForecastDisplay.Hour
 
     let hours: [Hour]
 

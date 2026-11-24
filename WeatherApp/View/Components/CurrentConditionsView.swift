@@ -2,17 +2,8 @@ import SwiftUI
 
 /// The top of the start screen: place, current temperature and condition (W-02, W-12).
 struct CurrentConditionsView: View {
-    /// Plain values to display. The ViewModel will later map the domain model into this.
-    struct Conditions {
-        let placeName: String
-        let temperature: Double
-        let conditionText: String
-        let symbolName: String
-        let high: Double
-        let low: Double
-        let windSpeedKilometresPerHour: Double
-        let updatedAt: Date
-    }
+    /// Plain values to display, built by `ForecastViewModel` (SPEC.md §8, 2026-11-24).
+    typealias Conditions = ForecastDisplay.Conditions
 
     let conditions: Conditions
     let isFavourite: Bool
