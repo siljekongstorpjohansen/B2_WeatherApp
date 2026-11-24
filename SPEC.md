@@ -106,7 +106,10 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 
 | Component | Purpose | Edge cases | IDs |
 | --------- | ------- | ---------- | --- |
-| `GeocodingService` | Place name → `[Place]` | Empty query, no results, å/ä/ö, 401/429, timeout | W-11, W-14 |
+| `GeocodingService` | Place name → `[GeocodingResult]`; runs off the main actor (`@concurrent`); API key injected; throws only `NetworkError`; query encoded by `URLComponents` | Empty query, no results, å/ä/ö, 401 (bad/missing key), 429 (rate limit), timeout | W-11, W-14, W-21, W-22 |
+| `GeocodingResult` | Decodable mirror of one geocode.maps.co result: `name` (optional), `display_name`, `lat`, `lon` (strings); other fields ignored | Empty array = no results; extra fields ignored | W-11, W-19 |
+| `GeocodingParser` | `[GeocodingResult]` → `[Place]`: coordinate strings → `Double`; invalid or out-of-range rows skipped; `Place.name` = `name`, or the part of `display_name` before the first comma if `name` is missing or empty | `"abc"` as lat, lat 91, missing `name`, å/ä/ö names | W-11, W-15, W-19 |
+| `Config/` (`WeatherApp.xcconfig`, `Secrets.xcconfig`, `Secrets.example.xcconfig`, `Info.plist`) | Keeps the geocoding key out of git and puts it in the app at build time: Secrets → `GEOCODING_API_KEY` → Info.plist `GeocodingAPIKey` → `WeatherApp.swift` → repository → service | Missing `Secrets.xcconfig` still builds (`#include?`) → empty key → 401 → error state | W-11 |
 | `ForecastService` | Fetch Open-Meteo JSON for lat/lon → `OpenMeteoResponse`; runs off the main actor (`@concurrent`); throws only `NetworkError` | Offline, timeout, 4xx/5xx, 200 with bad JSON | W-10, W-21 |
 | `NetworkError` | Classify every request failure: offline, timeout, cancelled, HTTP status (+ API `reason`), decoding, unknown | `URLError` codes, `CancellationError`, HTTP 400 body | W-22, W-34 |
 | `ForecastParser` | DTO → `Forecast` (current, hourly today, 7 days) | Mismatched array lengths, missing fields, unknown weather code, time zones | W-13, W-19 |
@@ -119,7 +122,7 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | `Forecast` / `DayForecast` / `HourForecast` | Place, time zone, current conditions, all hours (time, °C, condition, precipitation %), 7 days (date, min/max °C, condition, precipitation, max wind m/s) | Fewer than 7 days; local dates | W-12, W-13, W-19 |
 | `WeatherCondition` | WMO code → text + SF Symbol (outlined variants), in one place | Unknown code → `.unknown` | W-12 |
 | `OpenMeteoResponse` / `OpenMeteoErrorResponse` | Decodable mirror of the Open-Meteo JSON (`current`, `hourly`, `daily`) / HTTP 400 body `{error, reason}` | snake_case keys, missing fields, `null` | W-19, W-22 |
-| `WeatherRepository` · `LiveWeatherRepository` · `FakeWeatherRepository` | One entry point for ViewModels: `searchPlaces(matching:)`, `forecast(for:)`, both `throws(NetworkError)`. Live = service + parser, off the main actor (search fixed to Stockholm until API key); Fake = canned results/errors for tests and previews | `ParseError` → `.decoding`; network errors pass through (no cache yet) | W-22, W-23, W-30 |
+| `WeatherRepository` · `LiveWeatherRepository` · `FakeWeatherRepository` | One entry point for ViewModels: `searchPlaces(matching:)`, `forecast(for:)`, both `throws(NetworkError)`. Live = services + parsers, off the main actor (`searchPlaces` = `GeocodingService` + `GeocodingParser`); Fake = canned results/errors for tests and previews | `ParseError` → `.decoding`; network errors pass through (no cache yet) | W-22, W-23, W-30 |
 | `FavouritesViewModel` / `SettingsViewModel` | Empty placeholders | — | W-04–W-06 |
 
 ### Screen: `SearchView` (start screen) — W-02, W-04, W-05, W-12–W-15, W-17, W-18, W-20, W-33
@@ -171,7 +174,7 @@ Landscape / iPad: two columns — Units + Display on the left, Data + About on t
 
 ## 7. Open questions
 
-1. Where to keep the geocode.maps.co API key out of git (`.xcconfig` in `.gitignore`?)
+1. ~~Where to keep the geocode.maps.co API key out of git (`.xcconfig` in `.gitignore`?)~~ → git-ignored `Config/Secrets.xcconfig` → `Info.plist` → injected (§8, 2026-11-24)
 2. Persistence: `UserDefaults` + JSON or SwiftData?
 3. ~~Which UI preferences in settings (units, theme, …)?~~ → temperature unit, wind unit, appearance, time format (§6, 2026-11-23)
 4. ~~Refresh rate: timer while visible, or refresh on open when cache is older than N min?~~ → refresh on open when older than N min (§6, 2026-11-23)
@@ -207,6 +210,7 @@ Landscape / iPad: two columns — Units + Display on the left, Data + About on t
 | 2026-11-23 | Real API proven by an opt-in live test (`LiveWeatherRepositoryTests`, runs only with `LIVE_API_TESTS=1`) | Temporary console print in `WeatherApp.swift` | No app file touched (no conflict with the UI branch); repeatable before submission; normal runs stay offline | W-10, W-27 |
 | 2026-11-24 | Silje's view types become typealiases of `ForecastDisplay`'s (`typealias Conditions = ForecastDisplay.Conditions`, …) | Converter functions copying display → view types | One type instead of two to keep in sync; fields were already identical, so `SampleData` still compiles | W-30 |
 | 2026-11-24 | Loading shows a plain spinner for now; the old forecast dimmed under a spinner (UI design) comes in plan step 9 | Change `State.loading` to carry the previous forecast now | Keeps today's change to wiring only; the `State` change is Core and needs its own decision | W-33 |
+| 2026-11-24 | Geocoding key in git-ignored `Config/Secrets.xcconfig`, included by a committed `Config/WeatherApp.xcconfig` (`#include?`), read from `Info.plist` and injected via initialisers | Hard-coded in Swift; scheme environment variable | Hard-coding puts it in git; a scheme variable only works when launched from Xcode. Trade-off: the key is readable inside the built app — fine for a free key, never in git | W-11 |
 | 2026-11-23 | Start screen = search + current + hourly + 7-day on one screen, tab bar for Favourites/Settings (§6) | Separate search screen before forecast | _fill in_ | W-02, W-05, W-33 |
 | 2026-11-23 | Settings: °C/°F, wind unit, appearance, 12/24 h time | Fewer options | _fill in_ | W-06 |
 | 2026-11-23 | Refresh on open when cache older than 15/30/60 min or manual | Timer while screen visible | _fill in_ | W-06, W-16 |
