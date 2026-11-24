@@ -3,16 +3,7 @@ import SwiftUI
 /// The 7-day overview (W-12, W-20). Each row navigates to the day's detail screen (W-03).
 struct DailyForecastListView: View {
     /// Plain values for one day.
-    struct Day: Identifiable {
-        let date: Date
-        let isToday: Bool
-        let symbolName: String
-        let conditionText: String
-        let low: Double
-        let high: Double
-
-        var id: Date { date }
-    }
+    typealias Day = ForecastDisplay.Day
 
     let days: [Day]
 

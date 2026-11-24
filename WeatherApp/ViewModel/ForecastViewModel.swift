@@ -20,6 +20,8 @@ final class ForecastViewModel {
     private let repository: any WeatherRepository
     private let now: () -> Date
     private var searchTask: Task<Void, Never>?
+    /// What the user last searched for, so `retry()` can repeat it.
+    private var lastQuery: String?
 
     /// - Parameters:
     ///   - repository: `LiveWeatherRepository` in the app, `FakeWeatherRepository` in tests and previews.
@@ -33,10 +35,18 @@ final class ForecastViewModel {
     ///
     /// A newer call cancels this one; only the newest search may change `state` (W-34, oral Q12).
     func search(_ query: String) async {
+        lastQuery = query
         searchTask?.cancel()
         let task = Task { await runSearch(query) }
         searchTask = task
         await task.value
+    }
+
+    /// Repeats the last search, e.g. from the error state's "Try again" (W-22).
+    /// Does nothing before the first search.
+    func retry() async {
+        guard let lastQuery else { return }
+        await search(lastQuery)
     }
 
     private func runSearch(_ query: String) async {
