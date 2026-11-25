@@ -7,10 +7,12 @@ import Observation
 @Observable
 @MainActor
 final class ForecastViewModel {
-    /// What the screen shows. Exactly one at a time, so stale data can't sit next to a spinner (oral Q11).
+    /// What the screen shows. Exactly one at a time (oral Q11).
     enum State: Equatable {
         case idle
-        case loading
+        /// `previous` = the forecast that was on screen when loading started, shown dimmed under
+        /// the spinner so the screen is never blank (W-33); `nil` on first load or after an error.
+        case loading(previous: ForecastDisplay?)
         case loaded(ForecastDisplay)
         case failed(message: String)
     }
@@ -158,7 +160,7 @@ final class ForecastViewModel {
     }
 
     private func load(_ request: Request) async {
-        state = .loading
+        state = .loading(previous: displayedForecast)
         let result: Result<LoadedForecast, LoadFailure>
         switch request {
         case .search(let query):
@@ -179,6 +181,19 @@ final class ForecastViewModel {
         case .failure(let failure):
             offlineSince = nil
             state = .failed(message: failure.message)
+        }
+    }
+
+    /// The forecast the user sees right now: loaded, or still dimmed from a load before.
+    /// A rapid second search keeps the same old data instead of falling back to a bare spinner (W-34).
+    private var displayedForecast: ForecastDisplay? {
+        switch state {
+        case .loaded(let display):
+            display
+        case .loading(let previous):
+            previous
+        case .idle, .failed:
+            nil
         }
     }
 
