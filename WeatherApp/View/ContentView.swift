@@ -50,6 +50,8 @@ struct ContentView: View {
             guard phase == .active else { return }
             Task { await forecastViewModel.refreshIfOlder(than: settingsViewModel.settings.refreshInterval.minutes) }
         }
+        // W-17: runs for as long as the app shows this view; the monitor stops with it.
+        .task { await forecastViewModel.watchConnectivity() }
     }
 
     /// "System" means no override: `nil` follows the phone's own setting.

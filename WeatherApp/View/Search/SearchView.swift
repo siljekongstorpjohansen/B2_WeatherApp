@@ -44,21 +44,17 @@ struct SearchView: View {
                 message: "Search for a city or enter coordinates.",
                 systemImage: "mappin.and.ellipse"
             )
-        case .loading:
-            // Plain spinner for now; the old forecast dimmed under it comes in plan step 9 (SPEC.md §8).
+        case .loading(let previous?):
+            // Old forecast dimmed under a spinner, never a blank screen (SPEC.md §6, W-33).
+            forecastView(for: previous)
+                .loadingOverlay(isLoading: true)
+        case .loading(nil):
             ProgressView()
                 .controlSize(.large)
                 .accessibilityLabel("Loading forecast")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .loaded(let display):
-            ForecastView(
-                conditions: display.conditions,
-                hours: display.hours,
-                days: display.days,
-                timeZone: display.timeZone,
-                isFavourite: favouritesViewModel.isFavourite(display.place),
-                onToggleFavourite: { favouritesViewModel.toggleFavourite(display.place) }
-            )
+            forecastView(for: display)
         case .failed(let message):
             MessageStateView(
                 title: "Couldn't load the forecast",
@@ -68,6 +64,18 @@ struct SearchView: View {
                 action: { Task { await viewModel.retry() } }
             )
         }
+    }
+
+    /// The forecast layout, used both when loaded and dimmed while the next one loads.
+    private func forecastView(for display: ForecastDisplay) -> some View {
+        ForecastView(
+            conditions: display.conditions,
+            hours: display.hours,
+            days: display.days,
+            timeZone: display.timeZone,
+            isFavourite: favouritesViewModel.isFavourite(display.place),
+            onToggleFavourite: { favouritesViewModel.toggleFavourite(display.place) }
+        )
     }
 
     /// W-03: the 7-day list pushes the tapped day's date; the details come from the loaded forecast.

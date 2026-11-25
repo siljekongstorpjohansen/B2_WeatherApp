@@ -7,10 +7,12 @@ import Observation
 @Observable
 @MainActor
 final class ForecastViewModel {
-    /// What the screen shows. Exactly one at a time, so stale data can't sit next to a spinner (oral Q11).
+    /// What the screen shows. Exactly one at a time (oral Q11).
     enum State: Equatable {
         case idle
-        case loading
+        /// `previous` = the forecast that was on screen when loading started, shown dimmed under
+        /// the spinner so the screen is never blank (W-33); `nil` on first load or after an error.
+        case loading(previous: ForecastDisplay?)
         case loaded(ForecastDisplay)
         case failed(message: String)
     }
@@ -42,7 +44,10 @@ final class ForecastViewModel {
     }
 
     private let repository: any WeatherRepository
+    private let connectivityUpdates: AsyncStream<Bool>
     private let now: () -> Date
+    /// What `ConnectivityMonitor` last said. Starts `false`, so the first "online" at app start isn't a "return".
+    private var isOffline = false
     private var searchTask: Task<Void, Never>?
     /// What the user last asked for, so `retry()` and `refreshIfOlder` can repeat it.
     private var lastRequest: Request?
@@ -52,9 +57,16 @@ final class ForecastViewModel {
 
     /// - Parameters:
     ///   - repository: `LiveWeatherRepository` in the app, `FakeWeatherRepository` in tests and previews.
+    ///   - connectivityUpdates: `ConnectivityMonitor().updates()` in the app; tests pass their own stream.
+    ///     Empty by default, so previews and tests that don't need it never watch the network.
     ///   - now: the clock; tests pass a fixed time so "Now" and "Today" are predictable.
-    init(repository: any WeatherRepository, now: @escaping () -> Date = { Date() }) {
+    init(
+        repository: any WeatherRepository,
+        connectivityUpdates: AsyncStream<Bool> = AsyncStream { $0.finish() },
+        now: @escaping () -> Date = { Date() }
+    ) {
         self.repository = repository
+        self.connectivityUpdates = connectivityUpdates
         self.now = now
     }
 
@@ -101,6 +113,42 @@ final class ForecastViewModel {
         }
     }
 
+    /// Follows the connection for as long as the caller's task runs — the view's `.task` (W-17).
+    ///
+    /// Offline: the banner shows at once instead of after a failed request. Back online: the last
+    /// request is repeated, so cached or failed data is replaced without the user doing anything.
+    func watchConnectivity() async {
+        for await isOnline in connectivityUpdates {
+            if isOnline {
+                await connectionReturned()
+            } else {
+                connectionLost()
+            }
+        }
+    }
+
+    // MARK: - Connectivity
+
+    private func connectionLost() {
+        isOffline = true
+        // The data on screen stays; the banner says how old it is. Its age is when it was
+        // fetched, not when the connection dropped (W-17).
+        if case .loaded = state, offlineSince == nil, let shownForecast {
+            offlineSince = shownForecast.fetchedAt
+        }
+    }
+
+    private func connectionReturned() async {
+        // Also skips the first report at app start and Wi-Fi ↔ cellular switches: online → online.
+        guard isOffline else { return }
+        isOffline = false
+
+        // Fresh data on screen needs no reload; cached data (banner) or an error does.
+        let showsFailure = if case .failed = state { true } else { false }
+        guard offlineSince != nil || showsFailure else { return }
+        await retry()
+    }
+
     // MARK: - Loading
 
     private func run(_ request: Request) async {
@@ -112,7 +160,7 @@ final class ForecastViewModel {
     }
 
     private func load(_ request: Request) async {
-        state = .loading
+        state = .loading(previous: displayedForecast)
         let result: Result<LoadedForecast, LoadFailure>
         switch request {
         case .search(let query):
@@ -133,6 +181,19 @@ final class ForecastViewModel {
         case .failure(let failure):
             offlineSince = nil
             state = .failed(message: failure.message)
+        }
+    }
+
+    /// The forecast the user sees right now: loaded, or still dimmed from a load before.
+    /// A rapid second search keeps the same old data instead of falling back to a bare spinner (W-34).
+    private var displayedForecast: ForecastDisplay? {
+        switch state {
+        case .loaded(let display):
+            display
+        case .loading(let previous):
+            previous
+        case .idle, .failed:
+            nil
         }
     }
 
