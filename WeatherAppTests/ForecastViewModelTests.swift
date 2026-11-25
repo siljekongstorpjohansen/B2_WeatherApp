@@ -118,7 +118,11 @@ struct ForecastViewModelTests {
         }
 
         let slowSearch = Task { await viewModel.search("Oslo") }    // its answer takes 300 ms
-        try await Task.sleep(for: .milliseconds(50))                 // check while it is still loading
+        // Wait (max 1 s) until the Oslo search has started: parallel tests can delay it.
+        let deadline = ContinuousClock.now + .seconds(1)
+        while case .loaded = viewModel.state, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
 
         #expect(viewModel.state == .loading(previous: bergen))      // old data dimmed, not blank (W-33)
         await slowSearch.value
