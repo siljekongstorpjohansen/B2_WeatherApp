@@ -33,39 +33,39 @@
 | ID | Requirement | ✓ |
 | -- | ----------- | - |
 | **Basic** | | |
-| W-01 | Show forecast for the location the user requests | ☐ |
-| W-02 | Search/home screen: city or coordinates → current conditions + 7-day summary | ☐ |
-| W-03 | Detail screen for a selected day: temp, condition, wind, precipitation, … | ☐ |
-| W-04 | Mark places as favourites | ☐ |
-| W-05 | Favourites quick-access view | ☐ |
-| W-06 | Settings screen: refresh rate + UI preferences | ☐ |
+| W-01 | Show forecast for the location the user requests | ✓ |
+| W-02 | Search/home screen: city or coordinates → current conditions + 7-day summary | ✓ |
+| W-03 | Detail screen for a selected day: temp, condition, wind, precipitation, … | ✓ |
+| W-04 | Mark places as favourites | ✓ |
+| W-05 | Favourites quick-access view | ✓ |
+| W-06 | Settings screen: refresh rate + UI preferences | ✓ |
 | **Detailed** | | |
 | W-10 | Forecast data from Open-Meteo | ☐ |
 | W-11 | Place name → coordinates via geocode.maps.co | ☐ |
-| W-12 | Next 7 days: temperature + visual condition (icon/colour/text) | ☐ |
-| W-13 | Hourly detail for today, daily overview for remaining days | ☐ |
-| W-14 | Input accepts city name **or** coordinates | ☐ |
+| W-12 | Next 7 days: temperature + visual condition (icon/colour/text) | ✓ |
+| W-13 | Hourly detail for today, daily overview for remaining days | ✓ |
+| W-14 | Input accepts city name **or** coordinates | ✓ |
 | W-15 | Coordinates accept only valid floats (lat ±90, lon ±180) | ☐ |
 | W-16 | Parsed data stored locally | ☐ |
-| W-17 | Offline: no crash, clear message, show last fetched data | ☐ |
-| W-18 | Works in portrait and landscape | ☐ |
+| W-17 | Offline: no crash, clear message, show last fetched data | ✓ |
+| W-18 | Works in portrait and landscape | ✓ |
 | W-19 | Separate type for parsing JSON into the model | ☐ |
-| W-20 | Forecast shown in a scrollable list | ☐ |
+| W-20 | Forecast shown in a scrollable list | ✓ |
 | W-21 | Network requests off the main thread | ☐ |
-| W-22 | All errors handled — no crash, no blank screen | ☐ |
+| W-22 | All errors handled — no crash, no blank screen | ✓ |
 | W-23 | Passing tests for ≥ 2 of: parsing, error-state logic, data transformation | ☐ |
 | W-24 | ≥ 20 UX scenarios in test report (start state, action, expected) | ☐ |
-| W-25 | Tested on Simulator or device (not browser) | ☐ |
+| W-25 | Tested on Simulator or device (not browser) | ✓ |
 | W-26 | AI usage documented (§11) | ☐ |
 | W-27 | Final build uses real APIs | ☐ |
 | **Higher (A/VG)** | | |
 | W-30 | Distinct layers: networking, transformation, state, UI; deliberate naming | ☐ |
 | W-31 | Architecture understandable from docs before opening Xcode | ☐ |
-| W-32 | Designed UI: clear hierarchy, consistent spacing and visual language | ☐ |
-| W-33 | Designed loading, empty and error states | ☐ |
+| W-32 | Designed UI: clear hierarchy, consistent spacing and visual language | ✓ |
+| W-33 | Designed loading, empty and error states | ✓ |
 | W-34 | Edge cases: slow network, rapid searches, no results | ☐ |
 | W-35 | Oral exam questions mapped to code (§9) | ☐ |
-| W-36 | Update log kept every session (§12) | ☐ |
+| W-36 | Update log kept every session (§12) | ✓ |
 | **Submission** | | |
 | W-40 | Reflection report (~½ page) — written by me | ☐ |
 | W-41 | Appendices A–D complete | ☐ |
@@ -91,15 +91,15 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | # | Step | IDs | ✓ |
 | - | ---- | --- | - |
 | 1 | Inspect API JSON, save fixtures | W-10, W-11 | ☐ |
-| 2 | `STYLE.md`, `CONTEXT.md`, review §6 | W-30 | ☐ |
-| 3 | Xcode project + folder structure | W-30 | ☐ |
-| 3b | skeleton: real Open-Meteo 7-day forecast for fixed Stockholm through all layers except the UI | W-10, W-12, W-19, W-21, W-30 | ☐ |
-| 4 | Model + `ForecastParser` + tests | W-19, W-23 | ☐ |
+| 2 | `STYLE.md`, `CONTEXT.md`, review §6 | W-30 | ✓ |
+| 3 | Xcode project + folder structure | W-30 | ✓ |
+| 3b | skeleton: real Open-Meteo 7-day forecast for fixed Stockholm through all layers except the UI | W-10, W-12, W-19, W-21, W-30 | ✓ |
+| 4 | Model + `ForecastParser` + tests | W-19, W-23 | ✓ |
 | 5 | Services, repository, cache, connectivity | W-10, W-11, W-16, W-21 | ☐ |
 | 6 | ViewModels + error-state tests | W-22, W-23, W-34 | ☐ |
-| 7 | Search + detail screens | W-02, W-03, W-12, W-13, W-20 | ☐ |
-| 8 | Favourites + settings | W-04–W-06 | ☐ |
-| 9 | UI states, orientation, iPad | W-18, W-32, W-33 | ☐ |
+| 7 | Search + detail screens | W-02, W-03, W-12, W-13, W-20 | ✓ |
+| 8 | Favourites + settings | W-04–W-06 | ✓ |
+| 9 | UI states, orientation, iPad | W-18, W-32, W-33 | ✓ |
 | 10 | Test report, README, final docs | W-24, W-40–W-42 | ☐ |
 
 ## 6. Component specs (draft — fill in before coding)
@@ -302,12 +302,6 @@ Opening question is always **Q26**. Fill in code location + test as components a
 - **Code:** written by the AI after my approval, explained part by part (`STYLE.md` §2.1)
 - **Prompts and who-wrote-what:** see `docs/LLM_PROCESS.md`
 
-Session start prompt:
-```
-Today I want to work on: ______. Follow SPEC.md §1 and STYLE.md §2: propose first,
-write after my OK, explain every part, then ask me one explain-back question.
-Run the end-of-session ritual (SPEC.md §10) at the end.
-```
 
 ## 12. Update log
 
