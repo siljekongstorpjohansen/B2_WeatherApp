@@ -61,11 +61,11 @@
 | **Higher (A/VG)** | | |
 | W-30 | Distinct layers: networking, transformation, state, UI; deliberate naming | ☐ |
 | W-31 | Architecture understandable from docs before opening Xcode | ☐ |
-| W-32 | Designed UI: clear hierarchy, consistent spacing and visual language | ☐ |
-| W-33 | Designed loading, empty and error states | ☐ |
+| W-32 | Designed UI: clear hierarchy, consistent spacing and visual language | ☑ |
+| W-33 | Designed loading, empty and error states | ☑ |
 | W-34 | Edge cases: slow network, rapid searches, no results | ☐ |
 | W-35 | Oral exam questions mapped to code (§9) | ☐ |
-| W-36 | Update log kept every session (§12) | ☐ |
+| W-36 | Update log kept every session (§12) | ☑ |
 | **Submission** | | |
 | W-40 | Reflection report (~½ page) — written by me | ☐ |
 | W-41 | Appendices A–D complete | ☐ |
@@ -103,7 +103,7 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | 6 | ViewModels + error-state tests | W-22, W-23, W-34 | ☑ |
 | 7 | Search + detail screens | W-02, W-03, W-12, W-13, W-20 | ☑ |
 | 8 | Favourites + settings | W-04–W-06 | ☑ |
-| 9 | UI states, orientation, iPad | W-18, W-32, W-33 | ◐ |
+| 9 | UI states, orientation, iPad | W-18, W-32, W-33 | ☑ |
 | 10 | Test report, README, final docs | W-24, W-40–W-42 | ◐ |
 
 ## 6. Component specs
@@ -311,12 +311,6 @@ Opening question is always **Q26**. Code = file → function; test = test functi
 - **Code:** written by the AI after our approval and explained part by part. Exception 2026-11-25 (connectivity, test gaps, docs): the AI wrote Core code without approval per piece, flagged each Core change in chat, and we reviewed it afterwards (§8, 2026-11-25). Mutation testing (M8) then found a weak AI-written test, which was rewritten.
 - **Prompts and who-wrote-what:** see `docs/LLM_PROCESS.md`
 
-Session start prompt:
-```
-Today I want to work on: ______. Follow SPEC.md §1 and STYLE.md §2: propose first,
-write after my OK, explain every part, then ask me one explain-back question.
-Run the end-of-session ritual (SPEC.md §10) at the end.
-```
 
 ## 12. Update log
 
