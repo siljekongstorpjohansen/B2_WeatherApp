@@ -25,4 +25,9 @@ struct Favourite: Identifiable, Equatable, Codable {
         self.dateAdded = dateAdded
         self.openCount = openCount
     }
+
+    /// The place to load a forecast for — by its saved coordinates, no geocoding (SPEC.md §8).
+    var place: Place {
+        Place(name: placeName, latitude: latitude, longitude: longitude)
+    }
 }

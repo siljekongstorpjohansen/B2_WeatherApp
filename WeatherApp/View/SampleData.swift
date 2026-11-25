@@ -29,7 +29,9 @@ enum SampleData {
             symbolName: "cloud.drizzle",
             high: 4.2,
             low: 0.3,
-            windSpeedKilometresPerHour: 21.2,
+            windSpeed: 21.2,
+            windSpeedUnit: .kilometresPerHour,
+            temperatureUnit: .celsius,
             updatedAt: .now
         )
     }
@@ -84,5 +86,42 @@ enum SampleData {
                 high: sample.high
             )
         }
+    }
+
+    /// A full day for `DayDetailView` previews (W-03). `includeExtras: false` previews the
+    /// "API left them out" case, where tiles show "—".
+    static func dayDetail(includeExtras: Bool = true) -> ForecastDisplay.DayDetail {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: .now)
+        let day = days[2]  // the snowy day
+        let hours = (0..<24).map { hour in
+            HourlyStripView.Hour(
+                time: calendar.date(byAdding: .hour, value: hour, to: dayStart) ?? dayStart,
+                isNow: false,
+                symbolName: day.symbolName,
+                conditionText: day.conditionText,
+                temperature: day.low + (day.high - day.low) * max(0, 1 - abs(Double(hour) - 14) / 9)
+            )
+        }
+        return ForecastDisplay.DayDetail(
+            date: day.date,
+            timeZone: .current,
+            symbolName: day.symbolName,
+            conditionText: day.conditionText,
+            high: day.high,
+            low: day.low,
+            hours: hours,
+            precipitationMillimetres: 3.2,
+            precipitationProbabilityPercent: includeExtras ? 85 : nil,
+            maxWindSpeed: 21.2,
+            maxWindGust: includeExtras ? 43.9 : nil,
+            windSpeedUnit: .kilometresPerHour,
+            windDirectionDegrees: includeExtras ? 225 : nil,
+            feelsLikeHigh: includeExtras ? day.high - 3.4 : nil,
+            feelsLikeLow: includeExtras ? day.low - 5.1 : nil,
+            uvIndex: includeExtras ? 0.6 : nil,
+            sunrise: includeExtras ? calendar.date(bySettingHour: 8, minute: 21, second: 0, of: dayStart) : nil,
+            sunset: includeExtras ? calendar.date(bySettingHour: 14, minute: 53, second: 0, of: dayStart) : nil
+        )
     }
 }

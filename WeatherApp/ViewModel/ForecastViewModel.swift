@@ -17,11 +17,38 @@ final class ForecastViewModel {
 
     private(set) var state: State = .idle
 
+    /// When the shown forecast was saved, if it came from the cache because the phone is offline;
+    /// `nil` for fresh data. Drives the offline banner (W-17, SPEC.md §6).
+    private(set) var offlineSince: Date?
+
+    /// What can be loaded: typed text, or a known place (favourite, start place) by coordinates.
+    private enum Request: Equatable {
+        case search(String)
+        case place(Place)
+    }
+
+    /// A failed load, with the text the user sees.
+    private struct LoadFailure: Error {
+        let message: String
+    }
+
+    /// The forecast behind `.loaded`, kept so a unit change can rebuild the screen without a new request (W-06).
+    private struct ShownForecast {
+        let forecast: Forecast
+        /// When it was put on screen — the "now" for "Now" and "Today".
+        let shownAt: Date
+        /// When its data was fetched: `shownAt` if fresh, the cache time when offline (W-17).
+        let fetchedAt: Date
+    }
+
     private let repository: any WeatherRepository
     private let now: () -> Date
     private var searchTask: Task<Void, Never>?
-    /// What the user last searched for, so `retry()` can repeat it.
-    private var lastQuery: String?
+    /// What the user last asked for, so `retry()` and `refreshIfOlder` can repeat it.
+    private var lastRequest: Request?
+    private var shownForecast: ShownForecast?
+    private var temperatureUnit: UserSettings.TemperatureUnit = .celsius
+    private var windSpeedUnit: UserSettings.WindSpeedUnit = .kilometresPerHour
 
     /// - Parameters:
     ///   - repository: `LiveWeatherRepository` in the app, `FakeWeatherRepository` in tests and previews.
@@ -31,45 +58,139 @@ final class ForecastViewModel {
         self.now = now
     }
 
-    /// Searches for `query` and shows the forecast for the first match.
+    /// Searches for `query` — a place name or coordinates (W-14) — and shows the forecast.
     ///
     /// A newer call cancels this one; only the newest search may change `state` (W-34, oral Q12).
     func search(_ query: String) async {
-        lastQuery = query
+        await run(.search(query))
+    }
+
+    /// Shows the forecast for a place we already know — a favourite or the start place — by its
+    /// coordinates, without geocoding (W-05, SPEC.md §8).
+    func showForecast(for place: Place) async {
+        await run(.place(place))
+    }
+
+    /// Repeats the last request, e.g. from the error state's "Try again" (W-22).
+    /// Does nothing before the first request.
+    func retry() async {
+        guard let lastRequest else { return }
+        await run(lastRequest)
+    }
+
+    /// Reloads the shown forecast if it is older than `minutes`; `nil` means "Manual only" (W-06).
+    /// Called when the app comes back to the foreground.
+    func refreshIfOlder(than minutes: Int?) async {
+        guard let minutes,
+              let lastRequest,
+              let shownForecast,
+              // The age of the data, not of the screen: cached data from this morning is old (W-17).
+              now().timeIntervalSince(shownForecast.fetchedAt) > Double(minutes) * 60
+        else {
+            return
+        }
+        await run(lastRequest)
+    }
+
+    /// New units from Settings (W-06). If a forecast is shown, it is rebuilt at once — no new request.
+    func setUnits(temperature: UserSettings.TemperatureUnit, windSpeed: UserSettings.WindSpeedUnit) {
+        temperatureUnit = temperature
+        windSpeedUnit = windSpeed
+        if case .loaded = state, let shownForecast {
+            state = .loaded(display(for: shownForecast))
+        }
+    }
+
+    // MARK: - Loading
+
+    private func run(_ request: Request) async {
+        lastRequest = request
         searchTask?.cancel()
-        let task = Task { await runSearch(query) }
+        let task = Task { await load(request) }
         searchTask = task
         await task.value
     }
 
-    /// Repeats the last search, e.g. from the error state's "Try again" (W-22).
-    /// Does nothing before the first search.
-    func retry() async {
-        guard let lastQuery else { return }
-        await search(lastQuery)
-    }
-
-    private func runSearch(_ query: String) async {
+    private func load(_ request: Request) async {
         state = .loading
-        let newState = await loadState(for: query)
-        // A newer search started while this one was waiting: drop this result, the newer one wins.
+        let result: Result<LoadedForecast, LoadFailure>
+        switch request {
+        case .search(let query):
+            result = await loadForecast(for: query)
+        case .place(let place):
+            result = await loadForecast(at: place)
+        }
+        // A newer request started while this one was waiting: drop this result, the newer one wins.
         guard !Task.isCancelled else { return }
-        state = newState
+
+        switch result {
+        case .success(let loaded):
+            let shownAt = now()
+            let shown = ShownForecast(forecast: loaded.forecast, shownAt: shownAt, fetchedAt: loaded.cachedAt ?? shownAt)
+            shownForecast = shown
+            offlineSince = loaded.cachedAt
+            state = .loaded(display(for: shown))
+        case .failure(let failure):
+            offlineSince = nil
+            state = .failed(message: failure.message)
+        }
     }
 
-    /// Place search + forecast, turned into the state to show. Never throws: every error becomes `.failed`.
-    private func loadState(for query: String) async -> State {
+    private func display(for shown: ShownForecast) -> ForecastDisplay {
+        ForecastDisplay(
+            forecast: shown.forecast,
+            now: shown.shownAt,
+            updatedAt: shown.fetchedAt,
+            temperatureUnit: temperatureUnit,
+            windSpeedUnit: windSpeedUnit
+        )
+    }
+
+    /// The forecast for typed text. Coordinates skip place search (W-14); invalid ones never
+    /// reach the network (W-15).
+    private func loadForecast(for query: String) async -> Result<LoadedForecast, LoadFailure> {
+        switch CoordinateValidator.interpret(query) {
+        case .placeName(let name):
+            return await loadForecast(searchingFor: name)
+        case .coordinates(let latitude, let longitude):
+            let townName = await repository.placeName(latitude: latitude, longitude: longitude)
+            let name = townName ?? CoordinateValidator.displayName(latitude: latitude, longitude: longitude)
+            return await loadForecast(at: Place(name: name, latitude: latitude, longitude: longitude))
+        case .invalidCoordinates(let message):
+            return .failure(LoadFailure(message: message))
+        }
+    }
+
+    /// Place search, then the forecast for the first match.
+    private func loadForecast(searchingFor name: String) async -> Result<LoadedForecast, LoadFailure> {
         do throws(NetworkError) {
-            let places = try await repository.searchPlaces(matching: query)
+            let places = try await repository.searchPlaces(matching: name)
             guard let place = places.first else {
                 // A designed empty state comes later (W-33, W-34).
-                return .failed(message: "No places match \"\(query)\".")
+                return .failure(LoadFailure(message: "No places match \"\(name)\"."))
             }
-            let forecast = try await repository.forecast(for: place)
-            return .loaded(ForecastDisplay(forecast: forecast, now: now()))
+            return .success(try await repository.forecast(for: place))
         } catch {
-            return .failed(message: message(for: error))
+            // Offline before the forecast step (place search failed): show the latest saved
+            // forecast like every other offline load (SPEC.md §8, W-17).
+            if error.isConnectionProblem, let cached = await repository.cachedForecast() {
+                return .success(cached)
+            }
+            return failure(for: error)
         }
+    }
+
+    /// The forecast for a known place; the repository already falls back to the cache (W-17).
+    private func loadForecast(at place: Place) async -> Result<LoadedForecast, LoadFailure> {
+        do throws(NetworkError) {
+            return .success(try await repository.forecast(for: place))
+        } catch {
+            return failure(for: error)
+        }
+    }
+
+    private func failure(for error: NetworkError) -> Result<LoadedForecast, LoadFailure> {
+        .failure(LoadFailure(message: message(for: error)))
     }
 
     /// User-facing text for each error (W-22). Wording and icons get designed later (W-33).

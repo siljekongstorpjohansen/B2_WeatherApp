@@ -1,7 +1,7 @@
 /// Weather condition mapped from a WMO weather code (W-12).
 ///
 /// This is the only place that knows WMO codes, display text and SF Symbols (STYLE.md §6).
-nonisolated enum WeatherCondition: Hashable, Sendable, CustomStringConvertible {
+nonisolated enum WeatherCondition: Hashable, Sendable, Codable, CustomStringConvertible {
     case clear
     case mainlyClear
     case partlyCloudy
@@ -20,7 +20,7 @@ nonisolated enum WeatherCondition: Hashable, Sendable, CustomStringConvertible {
     case unknown
 
     /// How strong the precipitation is, as given by the WMO code.
-    nonisolated enum Intensity: Hashable, Sendable {
+    nonisolated enum Intensity: Hashable, Sendable, Codable {
         case light
         case moderate
         case heavy

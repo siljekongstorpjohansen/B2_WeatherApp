@@ -17,6 +17,12 @@ nonisolated enum NetworkError: Error, Equatable {
     /// Anything else, e.g. DNS failure or a response that isn't HTTP.
     case unknown
 
+    /// No working connection (offline or no answer in time): the cases where showing the latest
+    /// saved forecast makes sense (SPEC.md §8, W-17). The other cases mean the server answered.
+    var isConnectionProblem: Bool {
+        self == .offline || self == .timeout
+    }
+
     /// Sorts any error thrown while making a request into one of the cases above.
     init(classifying error: any Error) {
         if let networkError = error as? NetworkError {

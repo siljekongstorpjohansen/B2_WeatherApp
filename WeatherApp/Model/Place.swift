@@ -4,7 +4,7 @@ import Foundation
 ///
 /// `nonisolated` + `Sendable`: the project defaults every type to the main actor,
 /// but places are passed to the service and parser off the main thread (W-21).
-nonisolated struct Place: Hashable, Sendable {
+nonisolated struct Place: Hashable, Sendable, Codable {
     let name: String
     let latitude: Double
     let longitude: Double

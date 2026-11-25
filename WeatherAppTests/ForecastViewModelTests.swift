@@ -47,6 +47,51 @@ struct ForecastViewModelTests {
         #expect(isLoaded)
     }
 
+    @Test func searchWithCoordinatesSkipsPlaceSearchAndUsesLookedUpName() async throws {
+        let forecast = try loadFixtureForecast()
+        // If the ViewModel called place search, it would get this error and fail.
+        let repository = FakeWeatherRepository(
+            placesResult: .failure(.unknown),
+            forecastResult: .success(forecast),
+            reverseName: "Lookup Town"
+        )
+        let viewModel = ForecastViewModel(repository: repository, now: { Self.fixtureNow })
+
+        await viewModel.search("59.33, 18.07")
+
+        guard case .loaded(let display) = viewModel.state else {
+            Issue.record("Expected .loaded, got \(viewModel.state)")
+            return
+        }
+        #expect(display.conditions.placeName == "Lookup Town")
+    }
+
+    @Test func searchWithInvalidCoordinatesFailsWithoutNetwork() async {
+        // Every network answer is "offline"; the message must come from the validator instead.
+        let repository = FakeWeatherRepository(placesResult: .failure(.offline), forecastResult: .failure(.offline))
+        let viewModel = ForecastViewModel(repository: repository, now: { Self.fixtureNow })
+
+        await viewModel.search("91, 0")
+
+        #expect(viewModel.state == .failed(message: "Latitude must be between -90 and 90."))
+    }
+
+    @Test func cachedForecastSetsOfflineSinceAndShowsItsTime() async throws {
+        let forecast = try loadFixtureForecast()
+        let savedAt = Self.fixtureNow.addingTimeInterval(-3 * 60 * 60)  // saved 3 hours earlier
+        let repository = FakeWeatherRepository(forecastResult: .success(forecast), cachedAt: savedAt)
+        let viewModel = ForecastViewModel(repository: repository, now: { Self.fixtureNow })
+
+        await viewModel.showForecast(for: .stockholm)
+
+        #expect(viewModel.offlineSince == savedAt)
+        guard case .loaded(let display) = viewModel.state else {
+            Issue.record("Expected .loaded, got \(viewModel.state)")
+            return
+        }
+        #expect(display.conditions.updatedAt == savedAt)  // "Updated …" shows the data's age, not now
+    }
+
     // MARK: - ForecastDisplay (data transformation)
 
     @Test func displayStartsHoursAtCurrentHourAndShowsTwentyFour() throws {
@@ -68,6 +113,39 @@ struct ForecastViewModelTests {
         #expect(!display.days[1].isToday)
         #expect(display.conditions.high == 2.8)
         #expect(display.conditions.low == 1.3)
+    }
+
+    @Test func displayGroupsEachDaysTwentyFourHoursForDayDetail() throws {
+        let forecast = try loadFixtureForecast()  // 168 hours = 7 days × 24
+
+        let display = ForecastDisplay(forecast: forecast, now: Self.fixtureNow)
+
+        let secondDay = display.dayDetails[1]  // 2026-11-24
+        #expect(display.dayDetails.count == 7)
+        #expect(secondDay.hours.count == 24)
+        #expect(secondDay.hours.first?.time == stockholmDate(year: 2026, month: 11, day: 24, hour: 0))
+        #expect(secondDay.hours.last?.time == stockholmDate(year: 2026, month: 11, day: 24, hour: 23))
+    }
+
+    @Test func displayConvertsTemperaturesToFahrenheit() throws {
+        let forecast = try loadFixtureForecast()  // today: max 2.8 °C, min 1.3 °C
+
+        let display = ForecastDisplay(forecast: forecast, now: Self.fixtureNow, temperatureUnit: .fahrenheit)
+
+        #expect(abs(display.conditions.high - 37.04) < 0.001)  // 2.8 × 9/5 + 32
+        #expect(abs(display.conditions.low - 34.34) < 0.001)   // 1.3 × 9/5 + 32
+    }
+
+    @Test func displayConvertsWindToTheChosenUnit() throws {
+        let forecast = try loadFixtureForecast()  // current wind 21.2 km/h in the JSON → 5.89 m/s in the model
+        let metresPerSecond = forecast.current.windSpeedMetresPerSecond
+
+        let inMetres = ForecastDisplay(forecast: forecast, now: Self.fixtureNow, windSpeedUnit: .metresPerSecond)
+        let inMiles = ForecastDisplay(forecast: forecast, now: Self.fixtureNow, windSpeedUnit: .milesPerHour)
+
+        #expect(inMetres.conditions.windSpeed == metresPerSecond)
+        #expect(abs(inMiles.conditions.windSpeed - 13.17) < 0.01)  // 21.2 km/h ≈ 13.17 mph
+        #expect(inMiles.conditions.windSpeedUnit == .milesPerHour)
     }
 
     // MARK: - Helpers
@@ -111,8 +189,16 @@ private actor SequenceRepository: WeatherRepository {
         [.stockholm]
     }
 
-    func forecast(for place: Place) async throws(NetworkError) -> Forecast {
+    func forecast(for place: Place) async throws(NetworkError) -> LoadedForecast {
         guard !forecastResults.isEmpty else { throw .unknown }
-        return try forecastResults.removeFirst().get()
+        return LoadedForecast(forecast: try forecastResults.removeFirst().get(), cachedAt: nil)
+    }
+
+    func cachedForecast() async -> LoadedForecast? {
+        nil
+    }
+
+    func placeName(latitude: Double, longitude: Double) async -> String? {
+        nil
     }
 }

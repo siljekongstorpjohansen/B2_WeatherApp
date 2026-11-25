@@ -24,7 +24,7 @@ nonisolated struct ForecastParser {
 
         let current = try parseCurrent(response.current, using: dateTimeFormatter)
         let hours = try parseHours(response.hourly, using: dateTimeFormatter)
-        let days = try parseDays(response.daily, using: dateFormatter)
+        let days = try parseDays(response.daily, dateFormatter: dateFormatter, dateTimeFormatter: dateTimeFormatter)
 
         return Forecast(place: place, timeZone: timeZone, current: current, hours: hours, days: days)
     }
@@ -71,9 +71,13 @@ nonisolated struct ForecastParser {
         return hours
     }
 
+    /// - Parameters:
+    ///   - dateFormatter: for `time` ("2026-11-24").
+    ///   - dateTimeFormatter: for `sunrise` / `sunset` ("2026-11-24T08:21").
     private func parseDays(
         _ daily: OpenMeteoResponse.Daily,
-        using formatter: DateFormatter
+        dateFormatter: DateFormatter,
+        dateTimeFormatter: DateFormatter
     ) throws -> [DayForecast] {
         // Same parallel-array check as `parseHours`.
         let count = daily.time.count
@@ -88,17 +92,41 @@ nonisolated struct ForecastParser {
 
         var days: [DayForecast] = []
         for index in 0..<count {
-            let date = try date(from: daily.time[index], using: formatter)
-            days.append(DayForecast(
+            let date = try date(from: daily.time[index], using: dateFormatter)
+            var day = DayForecast(
                 date: date,
                 condition: WeatherCondition(wmoCode: daily.weatherCode[index]),
                 maxTemperatureCelsius: daily.temperature2mMax[index],
                 minTemperatureCelsius: daily.temperature2mMin[index],
                 precipitationMillimetres: daily.precipitationSum[index],
                 maxWindSpeedMetresPerSecond: metresPerSecond(fromKilometresPerHour: daily.windSpeed10mMax[index])
-            ))
+            )
+
+            // W-03 extras: each one is `nil` on its own if missing, so one odd field never fails the day.
+            let sunriseText = extraValue(daily.sunrise, at: index, count: count)
+            let sunsetText = extraValue(daily.sunset, at: index, count: count)
+            day.sunrise = sunriseText.flatMap { dateTimeFormatter.date(from: $0) }
+            day.sunset = sunsetText.flatMap { dateTimeFormatter.date(from: $0) }
+            day.apparentMaxTemperatureCelsius = extraValue(daily.apparentTemperatureMax, at: index, count: count)
+            day.apparentMinTemperatureCelsius = extraValue(daily.apparentTemperatureMin, at: index, count: count)
+            day.precipitationProbabilityMaxPercent = extraValue(daily.precipitationProbabilityMax, at: index, count: count)
+            day.uvIndexMax = extraValue(daily.uvIndexMax, at: index, count: count)
+            day.dominantWindDirectionDegrees = extraValue(daily.windDirection10mDominant, at: index, count: count)
+            day.maxWindGustMetresPerSecond = extraValue(daily.windGusts10mMax, at: index, count: count)
+                .map { metresPerSecond(fromKilometresPerHour: $0) }
+
+            days.append(day)
         }
         return days
+    }
+
+    /// One value from an optional daily array, or `nil` if the array is missing, has the wrong
+    /// length (it then can't be matched to `time`), or holds `null` for this day (SPEC.md §8).
+    private func extraValue<Value>(_ values: [Value?]?, at index: Int, count: Int) -> Value? {
+        guard let values, values.count == count else {
+            return nil
+        }
+        return values[index]
     }
 
     // MARK: - Helpers
