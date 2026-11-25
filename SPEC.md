@@ -106,24 +106,26 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 
 | Component | Purpose | Edge cases | IDs |
 | --------- | ------- | ---------- | --- |
-| `GeocodingService` | Place name → `[GeocodingResult]`; runs off the main actor (`@concurrent`); API key injected; throws only `NetworkError`; query encoded by `URLComponents` | Empty query, no results, å/ä/ö, 401 (bad/missing key), 429 (rate limit), timeout | W-11, W-14, W-21, W-22 |
+| `GeocodingService` | Place name → `[GeocodingResult]` (`/search`); coordinates → `ReverseGeocodingResult` (`/reverse?lat=&lon=`); runs off the main actor (`@concurrent`); API key injected; throws only `NetworkError`; query encoded by `URLComponents` | Empty query, no results, å/ä/ö, 401 (bad/missing key), 429 (rate limit), timeout | W-11, W-14, W-21, W-22 |
+| `ReverseGeocodingResult` | Decodable mirror of geocode.maps.co `/reverse`: `display_name` and `address` (`city`, `town`, `village`, `municipality`, `county`), **all optional** — shape not yet checked against a saved response | Open sea / no result, error body with HTTP 200, missing fields | W-14, W-19 |
 | `GeocodingResult` | Decodable mirror of one geocode.maps.co result: `name` (optional), `display_name`, `lat`, `lon` (strings); other fields ignored | Empty array = no results; extra fields ignored | W-11, W-19 |
-| `GeocodingParser` | `[GeocodingResult]` → `[Place]`: coordinate strings → `Double`; invalid or out-of-range rows skipped; `Place.name` = `name`, or the part of `display_name` before the first comma if `name` is missing or empty | `"abc"` as lat, lat 91, missing `name`, å/ä/ö names | W-11, W-15, W-19 |
+| `GeocodingParser` | `[GeocodingResult]` → `[Place]`: coordinate strings → `Double`; invalid or out-of-range rows skipped; `Place.name` = `name`, or the part of `display_name` before the first comma if `name` is missing or empty. `placeName(from: ReverseGeocodingResult)` → first non-empty of city, town, village, municipality, county, else first part of `display_name`, else `nil` | `"abc"` as lat, lat 91, missing `name`, å/ä/ö names, reverse result with no names | W-11, W-14, W-15, W-19 |
 | `Config/` (`WeatherApp.xcconfig`, `Secrets.xcconfig`, `Secrets.example.xcconfig`, `Info.plist`) | Keeps the geocoding key out of git and puts it in the app at build time: Secrets → `GEOCODING_API_KEY` → Info.plist `GeocodingAPIKey` → `WeatherApp.swift` → repository → service | Missing `Secrets.xcconfig` still builds (`#include?`) → empty key → 401 → error state | W-11 |
 | `ForecastService` | Fetch Open-Meteo JSON for lat/lon → `OpenMeteoResponse`; runs off the main actor (`@concurrent`); throws only `NetworkError` | Offline, timeout, 4xx/5xx, 200 with bad JSON | W-10, W-21 |
 | `NetworkError` | Classify every request failure: offline, timeout, cancelled, HTTP status (+ API `reason`), decoding, unknown | `URLError` codes, `CancellationError`, HTTP 400 body | W-22, W-34 |
-| `ForecastParser` | DTO → `Forecast` (current, hourly today, 7 days) | Mismatched array lengths, missing fields, unknown weather code, time zones | W-13, W-19 |
-| `ForecastCache` | Store last forecast + timestamp | First launch, corrupt data, stale data | W-16, W-17 |
-| `CoordinateValidator` | Coordinates or place name? Validate range | Comma decimals, out of range, single number | W-14, W-15 |
-| `ForecastViewModel` | Search → geocode → fetch → state. **Interface for views:** `state: State` (`.idle` · `.loading` · `.loaded(ForecastDisplay)` · `.failed(message: String)`), `init(repository:now:)`, `func search(_ query: String) async` (cancels the previous search), `func retry() async` (repeats the last search; for "Try again") | Rapid searches, offline ± cache, refresh, no results (→ `.failed` for now) | W-02, W-17, W-22, W-34 |
-| `ForecastDisplay` | Pure `Forecast` → screen data: `conditions` / `hours` / `days` mirror `CurrentConditionsView.Conditions`, `HourlyStripView.Hour`, `DailyForecastListView.Day` field by field; next 24 h from the current hour (`isNow`), `isToday` in the place's time zone, today's high/low, wind m/s → km/h | No day matches today (old data), fewer than 24 hours left | W-12, W-13, W-23 |
-| `FavouritesStore` / `SettingsStore` | Persist favourites and preferences | — | W-04–W-06 |
+| `ForecastParser` | DTO → `Forecast` (current, hourly today, 7 days). Extra daily fields (sunrise/sunset, feels like, rain chance, UV, wind direction, gusts) are optional: missing array, wrong length or `null` → `nil` for that field, never an error; gusts km/h → m/s | Mismatched array lengths, missing fields, unknown weather code, time zones | W-03, W-13, W-19 |
+| `ForecastCache` (`Data/Storage/`) | Saves the **latest** successful `Forecast` + `savedAt` as one JSON file in Application Support (file URL injected); off the main actor. `LoadedForecast` = forecast + `cachedAt` (`nil` = fresh from the network) | First launch (no file → `nil`), corrupt file → `nil`, write failure ignored (cache is best effort), stale data shown with its time | W-16, W-17 |
+| `CoordinateValidator` (`ViewModel/`) | Pure: search text → `SearchInput`: `.placeName` (text has letters) · `.coordinates(latitude:longitude:)` · `.invalidCoordinates(message:)`. Accepts `59.33, 18.07` · `59.33 18.07` · `59.33,18.07` · `59.33; 18.07` · comma decimals `59,33 18,07` / `59,33; 18,07` · signs `-33.87, 151.21`. Also `displayName(latitude:longitude:)` → `"59.33° N, 18.07° E"` | Single number, 3+ numbers, `59,33,18,07` (ambiguous → invalid), lat outside ±90, lon outside ±180. Known ambiguity: `59,33` (no space) = two numbers 59 and 33 | W-14, W-15, W-23 |
+| `ForecastViewModel` | Search → geocode → fetch → state. **Interface for views:** `state: State` (`.idle` · `.loading` · `.loaded(ForecastDisplay)` · `.failed(message: String)`), `init(repository:now:)`, `func search(_ query: String) async` (cancels the previous search), `func retry() async` (repeats the last request; for "Try again"), `func showForecast(for place: Place) async` (favourites and the start place: no geocoding), `func refreshIfOlder(than minutes: Int?) async` (W-06: reload when the shown forecast is older; `nil` = manual), `func setUnits(temperature:windSpeed:)` (rebuilds the shown forecast, no new request). `offlineSince: Date?` — set when the shown forecast came from the cache (drives the offline banner); a search that fails offline/timeout at the place-search step also falls back to `repository.cachedForecast()`. `search` asks `CoordinateValidator` first: place name → geocode → fetch; coordinates → look up a name (best effort) → fetch, no `/search`; invalid → `.failed(message)` with no network call | Rapid searches, offline ± cache, refresh, no results (→ `.failed` for now), invalid coordinates | W-02, W-14, W-15, W-17, W-22, W-34 |
+| `ForecastDisplay` | Pure `Forecast` (+ temperature and wind unit from Settings; `updatedAt` = cache time when offline) → screen data, converted to the chosen units (°C→°F, m/s→km/h/m/s/mph); also `place` and `timeZone`; `dayDetails` (one per day: all values for `DayDetailView` in display units + that day's 24 hours, grouped in the place's time zone); `conditions` / `hours` / `days` mirror `CurrentConditionsView.Conditions`, `HourlyStripView.Hour`, `DailyForecastListView.Day` field by field; next 24 h from the current hour (`isNow`), `isToday` in the place's time zone, today's high/low, wind m/s → km/h | No day matches today (old data), fewer than 24 hours left | W-12, W-13, W-23 |
+| `FavouritesStore` / `SettingsStore` (`Data/Storage/`) | Save/load `[Favourite]` + `FavouriteSortOrder` / `UserSettings` as JSON in `UserDefaults` (injected, so tests use their own suite) | First launch (nothing saved) → empty list / defaults; corrupt data → same, never a crash | W-04–W-06, W-16 |
 | `Place` | Name + latitude/longitude | Non-ASCII names (å/ä/ö) | W-01, W-14 |
-| `Forecast` / `DayForecast` / `HourForecast` | Place, time zone, current conditions, all hours (time, °C, condition, precipitation %), 7 days (date, min/max °C, condition, precipitation, max wind m/s) | Fewer than 7 days; local dates | W-12, W-13, W-19 |
+| `Forecast` / `DayForecast` / `HourForecast` | Place, time zone, current conditions, all hours (time, °C, condition, precipitation %), 7 days (date, min/max °C, condition, precipitation, max wind m/s; optional: sunrise, sunset, feels-like max/min °C, max rain chance %, max UV, dominant wind direction °, max gust m/s) | Fewer than 7 days; local dates | W-12, W-13, W-19 |
 | `WeatherCondition` | WMO code → text + SF Symbol (outlined variants), in one place | Unknown code → `.unknown` | W-12 |
 | `OpenMeteoResponse` / `OpenMeteoErrorResponse` | Decodable mirror of the Open-Meteo JSON (`current`, `hourly`, `daily`) / HTTP 400 body `{error, reason}` | snake_case keys, missing fields, `null` | W-19, W-22 |
-| `WeatherRepository` · `LiveWeatherRepository` · `FakeWeatherRepository` | One entry point for ViewModels: `searchPlaces(matching:)`, `forecast(for:)`, both `throws(NetworkError)`. Live = services + parsers, off the main actor (`searchPlaces` = `GeocodingService` + `GeocodingParser`); Fake = canned results/errors for tests and previews | `ParseError` → `.decoding`; network errors pass through (no cache yet) | W-22, W-23, W-30 |
-| `FavouritesViewModel` / `SettingsViewModel` | Empty placeholders | — | W-04–W-06 |
+| `WeatherRepository` · `LiveWeatherRepository` · `FakeWeatherRepository` | One entry point for ViewModels: `searchPlaces(matching:)`, `forecast(for:) -> LoadedForecast` (saves each fresh forecast; on `.offline`/`.timeout` returns the cached one instead of throwing), both `throws(NetworkError)`; `cachedForecast() async -> LoadedForecast?`; `placeName(latitude:longitude:) async -> String?` never throws (best effort: `nil` on any failure). Live = services + parsers, off the main actor (`searchPlaces` = `GeocodingService` + `GeocodingParser`); Fake = canned results/errors for tests and previews | `ParseError` → `.decoding`; network errors pass through (no cache yet) | W-22, W-23, W-30 |
+| `FavouritesViewModel` | Owns the favourites list: `sortedFavourites`, `sortOrder` (saved), `isFavourite(_ place:)`, `toggleFavourite(_ place:)`, `recordOpen(_:)` (count +1), `remove(_:)`; every change saved through `FavouritesStore`. A place is a favourite when its coordinates are within 0.01° of a saved one | Same name in two countries (coordinates decide), empty list | W-04, W-05 |
+| `SettingsViewModel` | `settings: UserSettings`, saved through `SettingsStore` on every change | — | W-06 |
 
 ### Screen: `SearchView` (start screen) — W-02, W-04, W-05, W-12–W-15, W-17, W-18, W-20, W-33
 
@@ -131,7 +133,7 @@ Layout, top to bottom:
 
 1. **Search field** — one field for city or `lat, lon` (placeholder `City or 59.33, 18.07`); `CoordinateValidator` decides which.
 2. **Favourite chips** — horizontal row, tap to switch place.
-3. **Current conditions** — place name + ★ toggle, large temperature, condition icon/text, high/low, wind, "Updated HH:mm".
+3. **Current conditions** — place name + ★ toggle, large temperature with a smaller raised unit ("34" + "°F"), condition icon/text, high/low, wind, "Updated HH:mm".
 4. **Today** — horizontal hourly strip (next 24 h from `hourly`).
 5. **7 days** — scrollable list: day, icon, min–max bar, chevron → `DayDetailView`.
 6. **Tab bar** — Weather · Favourites · Settings.
@@ -141,7 +143,7 @@ Layout, top to bottom:
 | First launch | Search field + "Find your weather — search for a city or enter coordinates." |
 | Loading | Previous data dimmed + spinner (never a blank screen) |
 | Loaded | Full layout above |
-| Offline, cached | Yellow banner "You're offline. Showing data from HH:mm." above cached forecast |
+| Offline, cached | Yellow banner "You're offline. Showing data from HH:mm." above the **latest** saved forecast (any place; its own name is shown) — on app open, a favourite or a search |
 | Error, no cache | "Couldn't load the forecast" + "Try again" button |
 | No search results | "No places found for '…'" under the search field |
 
@@ -149,11 +151,25 @@ Landscape / iPad: current conditions on the left, hourly + 7-day list on the rig
 
 **Test ideas:** valid fixture → 7 days · missing field → error · `"59.33, 18.06"` valid · `"91, 0"` invalid · empty geocode result → "no results" state.
 
+### Screen: `DayDetailView` (tap a day in the 7-day list) — W-03, W-12, W-13, W-18, W-32
+
+Pushed from the 7-day list (`NavigationLink(value: date)`); shows `ForecastDisplay.DayDetail` for that date. Layout, top to bottom:
+
+1. **Header** — weekday + date, condition icon and text, large high / low.
+2. **Hour by hour** — `HourlyStripView` with that day's hours.
+3. **Detail tiles** — Feels like (high/low) · Precipitation (mm + max chance %) · Wind (max speed, gusts, arrow + "from SW") · UV index (value + Low/Moderate/High/Very high/Extreme) · Sunrise (+ hours of daylight) · Sunset.
+
+New Open-Meteo `daily` fields: `sunrise`, `sunset`, `apparent_temperature_max/min`, `precipitation_probability_max`, `uv_index_max`, `wind_direction_10m_dominant`, `wind_gusts_10m_max`. A missing value shows "—" in its tile (W-22). Date not found in the current forecast (e.g. after a new search) → message state.
+
+Landscape / iPad: header on the left, hours + tiles on the right; tiles in adaptive columns (2 on iPhone portrait, more when wide).
+
 ### Screen: `FavouritesView` (Favourites tab) — W-04, W-05, W-18, W-33
 
 - **List** of favourite places: name, coordinates, and a subtitle that matches the sort order ("Opened 12 times" / "Added 3 Nov").
 - **Sort menu** in the toolbar: Most viewed (default) · A–Z · Recently added. Ties in "Most viewed" fall back to A–Z; A–Z uses locale-aware comparison (å/ä/ö).
-- **Tap** a place → its open count goes up by 1 and the app switches to the Weather tab showing that place.
+- **Tap** a place → its open count goes up by 1 and the app switches to the Weather tab showing that place (loaded by its saved coordinates, no geocoding).
+- **★ on the start screen** adds/removes the shown place; the **chips** show the same saved list (a chip tap also counts as an open).
+- **First launch:** no favourites → no chips; the start screen shows Stockholm.
 - **Swipe to delete** removes a favourite.
 - **Empty state:** "No favourites yet — tap the star next to a place to add it here."
 - Data: `Favourite` (Model) with `dateAdded` and `openCount`; sorting in `FavouriteSortOrder` (Support tier). Persisted later by `FavouritesStore`.
@@ -168,14 +184,14 @@ Grouped form, sections:
 3. **Data** — Refresh forecast: "When older than" 15 / 30 / 60 min / Manual only. Footer explains: refreshed on open when the cached forecast is older (§7 #4).
 4. **About** — App version, data sources (Open-Meteo, geocode.maps.co).
 
-Changes apply immediately (no Save button). Values stored in `UserSettings` (Model), persisted later by `SettingsStore`.
+Changes apply immediately (no Save button) and are saved by `SettingsStore`. Appearance → whole app (`preferredColorScheme`); units → `ForecastDisplay`; time format → every time label (environment value `timeFormat`); refresh → when the app returns to the foreground and the shown forecast is older than the setting.
 
 Landscape / iPad: two columns — Units + Display on the left, Data + About on the right.
 
 ## 7. Open questions
 
 1. ~~Where to keep the geocode.maps.co API key out of git (`.xcconfig` in `.gitignore`?)~~ → git-ignored `Config/Secrets.xcconfig` → `Info.plist` → injected (§8, 2026-11-24)
-2. Persistence: `UserDefaults` + JSON or SwiftData?
+2. ~~Persistence: `UserDefaults` + JSON or SwiftData?~~ → `UserDefaults` + JSON (§8, 2026-11-25)
 3. ~~Which UI preferences in settings (units, theme, …)?~~ → temperature unit, wind unit, appearance, time format (§6, 2026-11-23)
 4. ~~Refresh rate: timer while visible, or refresh on open when cache is older than N min?~~ → refresh on open when older than N min (§6, 2026-11-23)
 5. ~~Minimum iOS version?~~ → **iOS 17.0** (§8, 2026-11-20)
@@ -211,6 +227,22 @@ Landscape / iPad: two columns — Units + Display on the left, Data + About on t
 | 2026-11-24 | Silje's view types become typealiases of `ForecastDisplay`'s (`typealias Conditions = ForecastDisplay.Conditions`, …) | Converter functions copying display → view types | One type instead of two to keep in sync; fields were already identical, so `SampleData` still compiles | W-30 |
 | 2026-11-24 | Loading shows a plain spinner for now; the old forecast dimmed under a spinner (UI design) comes in plan step 9 | Change `State.loading` to carry the previous forecast now | Keeps today's change to wiring only; the `State` change is Core and needs its own decision | W-33 |
 | 2026-11-24 | Geocoding key in git-ignored `Config/Secrets.xcconfig`, included by a committed `Config/WeatherApp.xcconfig` (`#include?`), read from `Info.plist` and injected via initialisers | Hard-coded in Swift; scheme environment variable | Hard-coding puts it in git; a scheme variable only works when launched from Xcode. Trade-off: the key is readable inside the built app — fine for a free key, never in git | W-11 |
+| 2026-11-24 | Coordinate input: comma, space or semicolon between numbers; comma or dot as decimal; anything with letters is a place name; `59,33,18,07` rejected as ambiguous | Only `lat, lon` with dot decimals | Nordic users type comma decimals; letters can't be coordinates, so no false positives | W-14, W-15 |
+| 2026-11-24 | Coordinates skip `/search`; the place name comes from `/reverse` and falls back to "59.33° N, 18.07° E" when the lookup fails | Always show degrees; make the lookup required | Shows a real town name; a missing key, rate limit or open sea never blocks the forecast | W-14, W-22 |
+| 2026-11-24 | `CoordinateValidator` lives in `ViewModel/`, called by `ForecastViewModel` | `Model/`; the View decides | It interprets user input for one screen; pure, so it is unit tested without SwiftUI | W-14, W-30 |
+| 2026-11-24 | Day detail shows feels-like, rain chance, UV, wind gusts + direction, sunrise/sunset | Only fields already fetched | _fill in_ | W-03 |
+| 2026-11-24 | Extra daily fields optional in DTO, model and parser: a missing or short array gives `nil`, not a parse error | Required like the core fields; re-save the fixture | They are extras: one odd field must not hide the whole forecast (W-22); the shared fixture and tests stay valid | W-03, W-19, W-22 |
+| 2026-11-24 | `ForecastDisplay` groups each day's 24 hours for the detail screen, in the place's time zone | Detail view filters `hours` itself | Grouping is data transformation, so it belongs in the ViewModel layer and is unit tested (W-23) | W-03, W-13, W-30 |
+| 2026-11-25 | Favourites and settings saved as JSON in `UserDefaults` | SwiftData | Small data; `Favourite` and `UserSettings` are already `Codable`; tests use a separate suite | W-04–W-06, W-16 |
+| 2026-11-25 | A place counts as a favourite by coordinates (within 0.01°), not by name | Match by name | Two places can share a name; coordinates from geocoding vary in the last decimals | W-04 |
+| 2026-11-25 | Favourites (tab and chips) load by saved coordinates via `showForecast(for:)` | Search the name again | Faster, works without the geocoding key, no rate limit, always the same place | W-05, W-11 |
+| 2026-11-25 | Units converted in `ForecastDisplay`; the model stays °C and m/s; changing a unit rebuilds the shown forecast without a new request | Request `temperature_unit` / `wind_speed_unit` from Open-Meteo | One source of truth in the model; conversion is a testable transformation (W-23); no network on a setting change | W-06, W-12 |
+| 2026-11-25 | Refresh setting applied when the app returns to the foreground (`scenePhase`) | Timer while visible; wait for `ForecastCache` | Matches §7 #4; works now without a cache | W-06 |
+| 2026-11-25 | 12/24-hour via an environment value read by the views; hour labels use the place's time zone | Format times in `ForecastDisplay` | Formatting is presentation; one setting reaches every view without passing it through each initialiser | W-06, W-13 |
+| 2026-11-25 | Cache only the latest forecast, as a JSON file in Application Support | One per place; `UserDefaults`; Caches folder | W-17 asks for "last fetched data"; ~40 KB is too big for `UserDefaults`; the OS may empty Caches | W-16, W-17 |
+| 2026-11-25 | Offline or timeout on any load → show the latest saved forecast (even for another place) + banner; other errors still show the error state | Only the same place; also on HTTP errors | Something useful instead of an empty screen (W-22); the place name and banner make clear what is shown; a server error is not "offline" | W-17, W-22 |
+| 2026-11-25 | Repository does the fallback for `forecast(for:)`; for a search that fails before the forecast step, the ViewModel asks `repository.cachedForecast()` | Fallback only in the ViewModel | Keeps STYLE §5 (repository decides cache fallback) for the main path; the search step has no forecast to fall back from | W-17, W-30 |
+| 2026-11-25 | Unit shown as a smaller raised "°C"/"°F" next to the large temperature only | Unit on every number; a badge | Clear without clutter; the large number stays the focus (W-32) | W-06, W-32 |
 | 2026-11-23 | Start screen = search + current + hourly + 7-day on one screen, tab bar for Favourites/Settings (§6) | Separate search screen before forecast | _fill in_ | W-02, W-05, W-33 |
 | 2026-11-23 | Settings: °C/°F, wind unit, appearance, 12/24 h time | Fewer options | _fill in_ | W-06 |
 | 2026-11-23 | Refresh on open when cache older than 15/30/60 min or manual | Timer while screen visible | _fill in_ | W-06, W-16 |

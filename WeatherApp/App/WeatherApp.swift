@@ -11,10 +11,17 @@ import SwiftUI
 struct WeatherApp: App {
     /// The one place that picks the real data source; tests pass `FakeWeatherRepository` instead (STYLE.md §4).
     @State private var forecastViewModel = ForecastViewModel(repository: LiveWeatherRepository.configured())
+    /// Saved on this phone in `UserDefaults` (SPEC.md §8, W-04–W-06).
+    @State private var favouritesViewModel = FavouritesViewModel(store: FavouritesStore())
+    @State private var settingsViewModel = SettingsViewModel(store: SettingsStore())
 
     var body: some Scene {
         WindowGroup {
-            ContentView(forecastViewModel: forecastViewModel)
+            ContentView(
+                forecastViewModel: forecastViewModel,
+                favouritesViewModel: favouritesViewModel,
+                settingsViewModel: settingsViewModel
+            )
         }
     }
 }

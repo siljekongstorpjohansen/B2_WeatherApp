@@ -1,29 +1,21 @@
 import SwiftUI
 
 /// The Favourites tab (SPEC.md §6, W-04, W-05): quick access to starred places,
-/// sortable by most viewed, A–Z or recently added.
-///
-/// TODO (plan step 8): replace the local `@State` with `FavouritesViewModel` / `FavouritesStore`
-/// so favourites, open counts and the chosen sort order are saved.
+/// sortable by most viewed, A–Z or recently added. Data and saving live in `FavouritesViewModel`.
 struct FavouritesView: View {
-    @State private var favourites: [Favourite]
-    @State private var sortOrder: FavouriteSortOrder = .mostViewed
+    /// Shared with the start screen's ★ and chips; saves every change (W-04, W-05).
+    @Bindable var viewModel: FavouritesViewModel
     /// Called when a place is tapped; the parent switches to the Weather tab.
     var onOpen: (Favourite) -> Void
 
-    init(favourites: [Favourite] = SampleData.favourites, onOpen: @escaping (Favourite) -> Void = { _ in }) {
-        _favourites = State(initialValue: favourites)
-        self.onOpen = onOpen
-    }
-
     private var sortedFavourites: [Favourite] {
-        sortOrder.sorted(favourites)
+        viewModel.sortedFavourites
     }
 
     var body: some View {
         NavigationStack {
             Group {
-                if favourites.isEmpty {
+                if viewModel.favourites.isEmpty {
                     MessageStateView(
                         title: "No favourites yet",
                         message: "Tap the star next to a place to add it here.",
@@ -35,7 +27,7 @@ struct FavouritesView: View {
             }
             .navigationTitle("Favourites")
             .toolbar {
-                if !favourites.isEmpty {
+                if !viewModel.favourites.isEmpty {
                     sortMenu
                 }
             }
@@ -48,7 +40,7 @@ struct FavouritesView: View {
                 Button {
                     open(favourite)
                 } label: {
-                    FavouriteRowView(favourite: favourite, sortOrder: sortOrder)
+                    FavouriteRowView(favourite: favourite, sortOrder: viewModel.sortOrder)
                 }
                 .buttonStyle(.plain)
             }
@@ -61,7 +53,7 @@ struct FavouritesView: View {
 
     private var sortMenu: some View {
         Menu {
-            Picker("Sort by", selection: $sortOrder) {
+            Picker("Sort by", selection: $viewModel.sortOrder) {
                 ForEach(FavouriteSortOrder.allCases) { order in
                     Text(order.title).tag(order)
                 }
@@ -69,33 +61,40 @@ struct FavouritesView: View {
         } label: {
             Label("Sort", systemImage: "arrow.up.arrow.down")
         }
-        .accessibilityLabel("Sort favourites, currently \(sortOrder.title)")
+        .accessibilityLabel("Sort favourites, currently \(viewModel.sortOrder.title)")
     }
 
     // MARK: - Actions
 
     private func open(_ favourite: Favourite) {
-        if let index = favourites.firstIndex(where: { $0.id == favourite.id }) {
-            favourites[index].openCount += 1
-        }
+        viewModel.recordOpen(favourite)
         onOpen(favourite)
     }
 
     /// `offsets` refer to the sorted list on screen, so look up ids there before removing.
     private func delete(at offsets: IndexSet) {
-        let idsToDelete = Set(offsets.map { sortedFavourites[$0].id })
-        favourites.removeAll { idsToDelete.contains($0.id) }
+        viewModel.remove(offsets.map { sortedFavourites[$0] })
     }
 }
 
 #Preview("Loaded") {
-    FavouritesView()
+    FavouritesView(viewModel: .preview(SampleData.favourites), onOpen: { _ in })
 }
 
 #Preview("Loaded – landscape", traits: .landscapeLeft) {
-    FavouritesView()
+    FavouritesView(viewModel: .preview(SampleData.favourites), onOpen: { _ in })
 }
 
 #Preview("Empty") {
-    FavouritesView(favourites: [])
+    FavouritesView(viewModel: .preview([]), onOpen: { _ in })
+}
+
+private extension FavouritesViewModel {
+    /// A view model with its own throwaway `UserDefaults`, so previews never touch the app's saved data.
+    static func preview(_ favourites: [Favourite]) -> FavouritesViewModel {
+        let defaults = UserDefaults(suiteName: "preview-favourites-\(UUID())") ?? .standard
+        let store = FavouritesStore(defaults: defaults)
+        store.saveFavourites(favourites)
+        return FavouritesViewModel(store: store)
+    }
 }

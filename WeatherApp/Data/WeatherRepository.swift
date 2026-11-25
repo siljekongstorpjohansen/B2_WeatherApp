@@ -9,6 +9,15 @@ nonisolated protocol WeatherRepository: Sendable {
     /// Places matching a search text, e.g. "Stockholm".
     func searchPlaces(matching query: String) async throws(NetworkError) -> [Place]
 
-    /// The full forecast (current, hours, days) for `place`.
-    func forecast(for place: Place) async throws(NetworkError) -> Forecast
+    /// The full forecast (current, hours, days) for `place`. When offline or timed out, the latest
+    /// saved forecast instead — possibly for another place — with `cachedAt` set (W-17, SPEC.md §8).
+    func forecast(for place: Place) async throws(NetworkError) -> LoadedForecast
+
+    /// The latest saved forecast, or `nil` if there is none — for a search that fails offline
+    /// before it reaches the forecast step (W-17).
+    func cachedForecast() async -> LoadedForecast?
+
+    /// A town name for coordinates the user typed, e.g. "Stockholm" (W-14).
+    /// Best effort: `nil` on any failure, and the caller shows the coordinates instead (SPEC.md §8).
+    func placeName(latitude: Double, longitude: Double) async -> String?
 }

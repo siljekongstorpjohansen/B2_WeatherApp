@@ -47,6 +47,20 @@ nonisolated struct OpenMeteoResponse: Decodable, Sendable {
         let precipitationSum: [Double]
         let windSpeed10mMax: [Double]
 
+        // W-03: extras for the day detail screen. Optional arrays with a `nil` default, so the saved
+        // fixture (which doesn't have them) still decodes and tests can build a `Daily` without them.
+        // Optional elements because Open-Meteo can send `null` for single days (e.g. UV far ahead).
+        var sunrise: [String?]? = nil
+        var sunset: [String?]? = nil
+        var apparentTemperatureMax: [Double?]? = nil
+        var apparentTemperatureMin: [Double?]? = nil
+        var precipitationProbabilityMax: [Int?]? = nil
+        var uvIndexMax: [Double?]? = nil
+        /// Degrees the wind comes from: 0 = north, 90 = east.
+        var windDirection10mDominant: [Int?]? = nil
+        /// km/h (API default), like `windSpeed10mMax`.
+        var windGusts10mMax: [Double?]? = nil
+
         nonisolated enum CodingKeys: String, CodingKey {
             case time
             case weatherCode = "weather_code"
@@ -54,6 +68,14 @@ nonisolated struct OpenMeteoResponse: Decodable, Sendable {
             case temperature2mMin = "temperature_2m_min"
             case precipitationSum = "precipitation_sum"
             case windSpeed10mMax = "wind_speed_10m_max"
+            case sunrise
+            case sunset
+            case apparentTemperatureMax = "apparent_temperature_max"
+            case apparentTemperatureMin = "apparent_temperature_min"
+            case precipitationProbabilityMax = "precipitation_probability_max"
+            case uvIndexMax = "uv_index_max"
+            case windDirection10mDominant = "wind_direction_10m_dominant"
+            case windGusts10mMax = "wind_gusts_10m_max"
         }
     }
 }

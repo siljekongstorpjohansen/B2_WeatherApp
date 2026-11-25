@@ -9,6 +9,8 @@ struct CurrentConditionsView: View {
     let isFavourite: Bool
     var onToggleFavourite: () -> Void
 
+    @Environment(\.timeFormat) private var timeFormat
+
     var body: some View {
         VStack(spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
@@ -21,7 +23,8 @@ struct CurrentConditionsView: View {
                 .accessibilityLabel(isFavourite ? "Remove from favourites" : "Add to favourites")
             }
 
-            Text("Updated \(conditions.updatedAt.formatted(date: .omitted, time: .shortened))")
+            // When this phone loaded it, so the phone's own time zone.
+            Text("Updated \(conditions.updatedAt.timeText(timeFormat, timeZone: .current))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -31,9 +34,19 @@ struct CurrentConditionsView: View {
                 .padding(.top, Spacing.sm)
                 .accessibilityHidden(true)
 
-            Text(conditions.temperature.degreesText)
-                .font(.heroTemperature)
-                .accessibilityLabel("\(conditions.temperature.degreesText), \(conditions.conditionText)")
+            // The number stays the hero; the unit sits smaller and raised beside it (SPEC.md §6, W-06).
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                Text(conditions.temperature.wholeNumberText)
+                    .font(.heroTemperature)
+                Text(conditions.temperatureUnit.title)
+                    .font(.heroTemperatureUnit)
+                    .foregroundStyle(.secondary)
+                    .baselineOffset(HeroUnit.raise)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                "\(conditions.temperature.wholeNumberText) degrees \(conditions.temperatureUnit.spokenName), \(conditions.conditionText)"
+            )
 
             Text(conditions.conditionText)
                 .font(.title3)
@@ -43,10 +56,10 @@ struct CurrentConditionsView: View {
                 .foregroundStyle(.secondary)
                 .accessibilityLabel("High \(conditions.high.degreesText), low \(conditions.low.degreesText)")
 
-            Label("\(Int(conditions.windSpeedKilometresPerHour.rounded())) km/h", systemImage: "wind")
+            Label(conditions.windSpeed.speedText(conditions.windSpeedUnit), systemImage: "wind")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .accessibilityLabel("Wind \(Int(conditions.windSpeedKilometresPerHour.rounded())) kilometres per hour")
+                .accessibilityLabel("Wind \(conditions.windSpeed.wholeNumberText) \(conditions.windSpeedUnit.spokenName)")
         }
         .frame(maxWidth: .infinity)
     }

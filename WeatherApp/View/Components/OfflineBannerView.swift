@@ -4,9 +4,11 @@ import SwiftUI
 struct OfflineBannerView: View {
     let lastUpdated: Date
 
+    @Environment(\.timeFormat) private var timeFormat
+
     var body: some View {
         Label(
-            "You're offline. Showing data from \(lastUpdated.formatted(date: .omitted, time: .shortened)).",
+            "You're offline. Showing data from \(lastUpdated.timeText(timeFormat, timeZone: .current)).",
             systemImage: "wifi.slash"
         )
         .font(.footnote)

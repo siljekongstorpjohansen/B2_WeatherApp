@@ -13,6 +13,28 @@ nonisolated struct GeocodingParser {
         results.compactMap { place(from: $0) }
     }
 
+    /// A short name for a reverse lookup, e.g. "Stockholm", or `nil` if the result has none (W-14).
+    ///
+    /// Takes the most specific address part that has text; falls back to the first part of `display_name`.
+    func placeName(from result: ReverseGeocodingResult) -> String? {
+        let address = result.address
+        let candidates = [
+            address?.city,
+            address?.town,
+            address?.village,
+            address?.municipality,
+            address?.county,
+            result.displayName?.split(separator: ",").first.map(String.init),
+        ]
+        for candidate in candidates {
+            let trimmed = candidate?.trimmingCharacters(in: .whitespaces) ?? ""
+            if !trimmed.isEmpty {
+                return trimmed
+            }
+        }
+        return nil
+    }
+
     /// One result → `Place`, or `nil` if its coordinates or name can't be used.
     private func place(from result: GeocodingResult) -> Place? {
         // The API sends coordinates as text ("59.3251172"); anything that isn't a number,

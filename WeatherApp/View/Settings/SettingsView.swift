@@ -2,11 +2,9 @@ import SwiftUI
 
 /// The Settings tab (SPEC.md §6, W-06). One column in portrait; two columns in
 /// landscape and on iPad so the form doesn't stretch across the whole width (W-18).
-///
-/// TODO (plan step 8): replace the local `@State` with `SettingsViewModel` / `SettingsStore`
-/// so the values are saved and used by the forecast request.
 struct SettingsView: View {
-    @State private var settings = UserSettings()
+    /// Saves every change straight away (W-06).
+    @Bindable var viewModel: SettingsViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
@@ -46,58 +44,23 @@ struct SettingsView: View {
 
     private var unitsSection: some View {
         Section("Units") {
-            Picker(selection: $settings.temperatureUnit) {
-                ForEach(UserSettings.TemperatureUnit.allCases) { unit in
-                    Text(unit.title).tag(unit)
-                }
-            } label: {
-                Label("Temperature", systemImage: "thermometer.medium")
-            }
-            .pickerStyle(.menu)
+            optionPicker("Temperature", systemImage: "thermometer.medium", selection: $viewModel.settings.temperatureUnit)
 
-            Picker(selection: $settings.windSpeedUnit) {
-                ForEach(UserSettings.WindSpeedUnit.allCases) { unit in
-                    Text(unit.title).tag(unit)
-                }
-            } label: {
-                Label("Wind speed", systemImage: "wind")
-            }
-            .pickerStyle(.menu)
+            optionPicker("Wind speed", systemImage: "wind", selection: $viewModel.settings.windSpeedUnit)
         }
     }
 
     private var displaySection: some View {
         Section("Display") {
-            Picker(selection: $settings.appearance) {
-                ForEach(UserSettings.Appearance.allCases) { appearance in
-                    Text(appearance.title).tag(appearance)
-                }
-            } label: {
-                Label("Appearance", systemImage: "circle.lefthalf.filled")
-            }
-            .pickerStyle(.menu)
+            optionPicker("Appearance", systemImage: "circle.lefthalf.filled", selection: $viewModel.settings.appearance)
 
-            Picker(selection: $settings.timeFormat) {
-                ForEach(UserSettings.TimeFormat.allCases) { format in
-                    Text(format.title).tag(format)
-                }
-            } label: {
-                Label("Time format", systemImage: "clock")
-            }
-            .pickerStyle(.menu)
+            optionPicker("Time format", systemImage: "clock", selection: $viewModel.settings.timeFormat)
         }
     }
 
     private var dataSection: some View {
         Section {
-            Picker(selection: $settings.refreshInterval) {
-                ForEach(UserSettings.RefreshInterval.allCases) { interval in
-                    Text(interval.title).tag(interval)
-                }
-            } label: {
-                Label("Refresh when older than", systemImage: "arrow.clockwise")
-            }
-            .pickerStyle(.menu)
+            optionPicker("Refresh when older than", systemImage: "arrow.clockwise", selection: $viewModel.settings.refreshInterval)
         } header: {
             Text("Data")
         } footer: {
@@ -113,10 +76,26 @@ struct SettingsView: View {
         }
     }
 
+    /// A menu picker with every case of a setting, e.g. °C / °F. All setting enums have a `title`.
+    private func optionPicker<Option: CaseIterable & Identifiable & Hashable & SettingOption>(
+        _ label: String,
+        systemImage: String,
+        selection: Binding<Option>
+    ) -> some View where Option.AllCases: RandomAccessCollection {
+        Picker(selection: selection) {
+            ForEach(Option.allCases) { option in
+                Text(option.title).tag(option)
+            }
+        } label: {
+            Label(label, systemImage: systemImage)
+        }
+        .pickerStyle(.menu)
+    }
+
     // MARK: - Text
 
     private var refreshFooterText: String {
-        if let minutes = settings.refreshInterval.minutes {
+        if let minutes = viewModel.settings.refreshInterval.minutes {
             "The forecast is refreshed when you open the app and it is more than \(minutes) minutes old."
         } else {
             "The forecast is only refreshed when you search for a place."
@@ -129,9 +108,16 @@ struct SettingsView: View {
 }
 
 #Preview("Portrait") {
-    SettingsView()
+    SettingsView(viewModel: .preview)
 }
 
 #Preview("Landscape", traits: .landscapeLeft) {
-    SettingsView()
+    SettingsView(viewModel: .preview)
+}
+
+private extension SettingsViewModel {
+    /// Its own throwaway `UserDefaults`, so previews never touch the app's saved settings.
+    static var preview: SettingsViewModel {
+        SettingsViewModel(store: SettingsStore(defaults: UserDefaults(suiteName: "preview-settings") ?? .standard))
+    }
 }
