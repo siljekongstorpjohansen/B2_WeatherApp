@@ -32,7 +32,7 @@ The work started with creatng teh SPEC.md, STYLE.md and CONTEXT.md. The first dr
 - The first drafts of the files were very long and hard to read and understand, after cxreating better prompts the files were better and easier to read.
 
 **Observations**
-- The AI takes in all teh information and often creates big complex documents. To make teh documents clearer and more readable the prompts/instructions to the LLM needs to be clear and it needs information telling it to make it short and readable. 
+- The AI takes in all teh information and often creates big complex documents. To make the documents clearer and more readable the prompts/instructions to the LLM needs to be clear and it needs information telling it to make it short and readable. 
 ---
 
 ### 2026-11-20 — Xcode project setup (Loke)
@@ -63,7 +63,7 @@ The work started with creatng teh SPEC.md, STYLE.md and CONTEXT.md. The first dr
 **AI Tool:** [Claude]
 
 **Purpose:**
-The purpose was to start creating the UI so it can be testes and also make it possible to later conect the different parts of the project. AI created a suggestuin for a interface and implemented it with code. The app only displays fake data at this point. 
+The purpose was to start creating the UI so it can be testes and also make it possible to later conect the different parts of the project. AI created a suggestion for a interface and implemented it with code. The app only displays fake data at this point. 
 
 **Example of Prompts:**
 - Create a suggestion for the home screen user interface
@@ -72,10 +72,10 @@ The purpose was to start creating the UI so it can be testes and also make it po
 - Now create the favorites interface. Make it possible to sort the list after which favorit you check the most or in alphabetical order or after date added as favorite
 
 **What needed to be changed?**
-- ...
+- In this session the AI followed the instructions clearly so not much needed to be changed
 
 **Observations**
-- ...
+- When getting clear instructions the AI creates usable code fast, where the instructions lacks clearity it ask questions back makling my reflect about where my prompts lack clearity 
 ---
 ### 3.3 Update the UI and create functional screens
 
@@ -98,8 +98,6 @@ The purpose of todays session was to keep working on the UI to make the app work
 - After testimg the settings on my phone I made som changes to the interface so it was more clear how the app worked for the user. 
 
 **Observations**
-- ...
+- When looking only at the feedback from the AI it looks like everything will work perfectly, but after testing the functions myself the lack of userfriendliness is more clear. To get the app more user friendly I try to promt in a more clear way with simple instructions for the model to follow. 
 ---
-
-## 4. Summary
 
