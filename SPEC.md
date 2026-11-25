@@ -23,7 +23,7 @@
 | Course / Lab | CM2023 · Lab B:2 — Native Weather App · grade target **A / VG** |
 | Platform | iOS (iPhone + iPad) · Swift / SwiftUI · Xcode |
 | APIs | Forecast: [Open-Meteo](https://open-meteo.com/en/docs) · Geocoding: `geocode.maps.co/search?q={place}` |
-| Stack | `URLSession` async/await · `Codable` DTOs · `NWPathMonitor` · local cache (see Q2) · MVVM + Repository |
+| Stack | `URLSession` async/await · `Codable` DTOs · `NWPathMonitor` · local storage: JSON file + `UserDefaults` (§8) · MVVM + Repository |
 | Docs | `README.md` (B) · `SPEC.md` (C) · `docs/TEST_REPORT.md` (A) · `docs/LLM_PROCESS.md` (D) · `docs/REFLECTION.md` |
 
 ## 3. Requirements
@@ -33,31 +33,31 @@
 | ID | Requirement | ✓ |
 | -- | ----------- | - |
 | **Basic** | | |
-| W-01 | Show forecast for the location the user requests | ☐ |
-| W-02 | Search/home screen: city or coordinates → current conditions + 7-day summary | ☐ |
-| W-03 | Detail screen for a selected day: temp, condition, wind, precipitation, … | ☐ |
-| W-04 | Mark places as favourites | ☐ |
-| W-05 | Favourites quick-access view | ☐ |
-| W-06 | Settings screen: refresh rate + UI preferences | ☐ |
+| W-01 | Show forecast for the location the user requests | ☑ |
+| W-02 | Search/home screen: city or coordinates → current conditions + 7-day summary | ☑ |
+| W-03 | Detail screen for a selected day: temp, condition, wind, precipitation, … | ☑ |
+| W-04 | Mark places as favourites | ☑ |
+| W-05 | Favourites quick-access view | ☑ |
+| W-06 | Settings screen: refresh rate + UI preferences | ☑ |
 | **Detailed** | | |
-| W-10 | Forecast data from Open-Meteo | ☐ |
-| W-11 | Place name → coordinates via geocode.maps.co | ☐ |
-| W-12 | Next 7 days: temperature + visual condition (icon/colour/text) | ☐ |
-| W-13 | Hourly detail for today, daily overview for remaining days | ☐ |
-| W-14 | Input accepts city name **or** coordinates | ☐ |
-| W-15 | Coordinates accept only valid floats (lat ±90, lon ±180) | ☐ |
-| W-16 | Parsed data stored locally | ☐ |
-| W-17 | Offline: no crash, clear message, show last fetched data | ☐ |
-| W-18 | Works in portrait and landscape | ☐ |
-| W-19 | Separate type for parsing JSON into the model | ☐ |
-| W-20 | Forecast shown in a scrollable list | ☐ |
-| W-21 | Network requests off the main thread | ☐ |
-| W-22 | All errors handled — no crash, no blank screen | ☐ |
-| W-23 | Passing tests for ≥ 2 of: parsing, error-state logic, data transformation | ☐ |
-| W-24 | ≥ 20 UX scenarios in test report (start state, action, expected) | ☐ |
-| W-25 | Tested on Simulator or device (not browser) | ☐ |
-| W-26 | AI usage documented (§11) | ☐ |
-| W-27 | Final build uses real APIs | ☐ |
+| W-10 | Forecast data from Open-Meteo | ☑ |
+| W-11 | Place name → coordinates via geocode.maps.co | ☑ |
+| W-12 | Next 7 days: temperature + visual condition (icon/colour/text) | ☑ |
+| W-13 | Hourly detail for today, daily overview for remaining days | ☑ |
+| W-14 | Input accepts city name **or** coordinates | ☑ |
+| W-15 | Coordinates accept only valid floats (lat ±90, lon ±180) | ☑ |
+| W-16 | Parsed data stored locally | ☑ |
+| W-17 | Offline: no crash, clear message, show last fetched data | ☑ |
+| W-18 | Works in portrait and landscape | ☑ |
+| W-19 | Separate type for parsing JSON into the model | ☑ |
+| W-20 | Forecast shown in a scrollable list | ☑ |
+| W-21 | Network requests off the main thread | ☑ |
+| W-22 | All errors handled — no crash, no blank screen | ☑ |
+| W-23 | Passing tests for ≥ 2 of: parsing, error-state logic, data transformation | ☑ |
+| W-24 | ≥ 20 UX scenarios in test report (start state, action, expected) | ☑ |
+| W-25 | Tested on Simulator or device (not browser) | ☑ |
+| W-26 | AI usage documented (§11) | ☑ |
+| W-27 | Final build uses real APIs | ☑ |
 | **Higher (A/VG)** | | |
 | W-30 | Distinct layers: networking, transformation, state, UI; deliberate naming | ☐ |
 | W-31 | Architecture understandable from docs before opening Xcode | ☐ |
@@ -83,6 +83,10 @@ View  ──intent──▶  ViewModel  ──▶  WeatherRepository  ──▶ 
 - **ViewModel** — screen state (idle / loading / loaded / failed), cancels stale requests.
 - **Repository** — chooses network vs. cache; hides HTTP and storage.
 - **Parser** — DTO → domain model; the UI never sees API types.
+- **Storage** — `ForecastCache` (latest forecast, file), `FavouritesStore` / `SettingsStore` (`UserDefaults`).
+- **`ConnectivityMonitor`** — tells the ViewModel when the connection drops or returns (banner, reload).
+
+Full diagram, layer table and data flow: `README.md` → *Architecture*.
 
 Folder layout and layer rules: `STYLE.md` §3–4.
 
@@ -90,19 +94,19 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 
 | # | Step | IDs | ✓ |
 | - | ---- | --- | - |
-| 1 | Inspect API JSON, save fixtures | W-10, W-11 | ☐ |
-| 2 | `STYLE.md`, `CONTEXT.md`, review §6 | W-30 | ☐ |
-| 3 | Xcode project + folder structure | W-30 | ☐ |
-| 3b | skeleton: real Open-Meteo 7-day forecast for fixed Stockholm through all layers except the UI | W-10, W-12, W-19, W-21, W-30 | ☐ |
-| 4 | Model + `ForecastParser` + tests | W-19, W-23 | ☐ |
-| 5 | Services, repository, cache, connectivity | W-10, W-11, W-16, W-21 | ☐ |
-| 6 | ViewModels + error-state tests | W-22, W-23, W-34 | ☐ |
-| 7 | Search + detail screens | W-02, W-03, W-12, W-13, W-20 | ☐ |
-| 8 | Favourites + settings | W-04–W-06 | ☐ |
-| 9 | UI states, orientation, iPad | W-18, W-32, W-33 | ☐ |
-| 10 | Test report, README, final docs | W-24, W-40–W-42 | ☐ |
+| 1 | Inspect API JSON, save fixtures | W-10, W-11 | ☑ |
+| 2 | `STYLE.md`, `CONTEXT.md`, review §6 | W-30 | ☑ |
+| 3 | Xcode project + folder structure | W-30 | ☑ |
+| 3b | skeleton: real Open-Meteo 7-day forecast for fixed Stockholm through all layers except the UI | W-10, W-12, W-19, W-21, W-30 | ☑ |
+| 4 | Model + `ForecastParser` + tests | W-19, W-23 | ☑ |
+| 5 | Services, repository, cache, connectivity | W-10, W-11, W-16, W-21 | ☑ |
+| 6 | ViewModels + error-state tests | W-22, W-23, W-34 | ☑ |
+| 7 | Search + detail screens | W-02, W-03, W-12, W-13, W-20 | ☑ |
+| 8 | Favourites + settings | W-04–W-06 | ☑ |
+| 9 | UI states, orientation, iPad | W-18, W-32, W-33 | ◐ |
+| 10 | Test report, README, final docs | W-24, W-40–W-42 | ◐ |
 
-## 6. Component specs (draft — fill in before coding)
+## 6. Component specs
 
 | Component | Purpose | Edge cases | IDs |
 | --------- | ------- | ---------- | --- |
@@ -114,17 +118,17 @@ Folder layout and layer rules: `STYLE.md` §3–4.
 | `ForecastService` | Fetch Open-Meteo JSON for lat/lon → `OpenMeteoResponse`; runs off the main actor (`@concurrent`); throws only `NetworkError` | Offline, timeout, 4xx/5xx, 200 with bad JSON | W-10, W-21 |
 | `NetworkError` | Classify every request failure: offline, timeout, cancelled, HTTP status (+ API `reason`), decoding, unknown | `URLError` codes, `CancellationError`, HTTP 400 body | W-22, W-34 |
 | `ConnectivityMonitor` (`Data/Network/`) | Wraps `NWPathMonitor`: `updates() -> AsyncStream<Bool>` (`true` = online), latest value only; the monitor stops when the stream ends. Only drives the banner and auto-reload — never blocks a request | First report at start, Wi-Fi ↔ cellular (online twice), flapping connection, Wi-Fi without internet (says online) | W-17, W-21 |
-| `ForecastParser` | DTO → `Forecast` (current, hourly today, 7 days). Extra daily fields (sunrise/sunset, feels like, rain chance, UV, wind direction, gusts) are optional: missing array, wrong length or `null` → `nil` for that field, never an error; gusts km/h → m/s | Mismatched array lengths, missing fields, unknown weather code, time zones | W-03, W-13, W-19 |
+| `ForecastParser` | DTO → `Forecast` (current, all 168 hours, 7 days; "today" is grouped later in `ForecastDisplay`). Extra daily fields (sunrise/sunset, feels like, rain chance, UV, wind direction, gusts) are optional: missing array, wrong length or `null` → `nil` for that field, never an error; gusts km/h → m/s | Mismatched array lengths, missing fields, unknown weather code, time zones | W-03, W-13, W-19 |
 | `ForecastCache` (`Data/Storage/`) | Saves the **latest** successful `Forecast` + `savedAt` as one JSON file in Application Support (file URL injected); off the main actor. `LoadedForecast` = forecast + `cachedAt` (`nil` = fresh from the network) | First launch (no file → `nil`), corrupt file → `nil`, write failure ignored (cache is best effort), stale data shown with its time | W-16, W-17 |
 | `CoordinateValidator` (`ViewModel/`) | Pure: search text → `SearchInput`: `.placeName` (text has letters) · `.coordinates(latitude:longitude:)` · `.invalidCoordinates(message:)`. Accepts `59.33, 18.07` · `59.33 18.07` · `59.33,18.07` · `59.33; 18.07` · comma decimals `59,33 18,07` / `59,33; 18,07` · signs `-33.87, 151.21`. Also `displayName(latitude:longitude:)` → `"59.33° N, 18.07° E"` | Single number, 3+ numbers, `59,33,18,07` (ambiguous → invalid), lat outside ±90, lon outside ±180. Known ambiguity: `59,33` (no space) = two numbers 59 and 33 | W-14, W-15, W-23 |
-| `ForecastViewModel` | Search → geocode → fetch → state. **Interface for views:** `state: State` (`.idle` · `.loading` · `.loaded(ForecastDisplay)` · `.failed(message: String)`), `init(repository:connectivityUpdates:now:)` (`connectivityUpdates` empty by default for tests and previews), `func search(_ query: String) async` (cancels the previous search), `func watchConnectivity() async` (W-17: connection lost with a forecast shown → `offlineSince` = when it was fetched; connection back after being offline, with cached or failed data → `retry()`; the first "online" report changes nothing), `func retry() async` (repeats the last request; for "Try again"), `func showForecast(for place: Place) async` (favourites and the start place: no geocoding), `func refreshIfOlder(than minutes: Int?) async` (W-06: reload when the shown forecast is older; `nil` = manual), `func setUnits(temperature:windSpeed:)` (rebuilds the shown forecast, no new request). `offlineSince: Date?` — set when the shown forecast came from the cache (drives the offline banner); a search that fails offline/timeout at the place-search step also falls back to `repository.cachedForecast()`. `search` asks `CoordinateValidator` first: place name → geocode → fetch; coordinates → look up a name (best effort) → fetch, no `/search`; invalid → `.failed(message)` with no network call | Rapid searches, offline ± cache, refresh, no results (→ `.failed` for now), invalid coordinates | W-02, W-14, W-15, W-17, W-22, W-34 |
+| `ForecastViewModel` | Search → geocode → fetch → state. **Interface for views:** `state: State` (`.idle` · `.loading(previous: ForecastDisplay?)` · `.loaded(ForecastDisplay)` · `.failed(message: String)`; `previous` = the forecast on screen when loading started, shown dimmed), `init(repository:connectivityUpdates:now:)` (`connectivityUpdates` empty by default for tests and previews), `func search(_ query: String) async` (cancels the previous search), `func watchConnectivity() async` (W-17: connection lost with a forecast shown → `offlineSince` = when it was fetched; connection back after being offline, with cached or failed data → `retry()`; the first "online" report changes nothing), `func retry() async` (repeats the last request; for "Try again"), `func showForecast(for place: Place) async` (favourites and the start place: no geocoding), `func refreshIfOlder(than minutes: Int?) async` (W-06: reload when the shown forecast is older; `nil` = manual), `func setUnits(temperature:windSpeed:)` (rebuilds the shown forecast, no new request). `offlineSince: Date?` — set when the shown forecast came from the cache (drives the offline banner); a search that fails offline/timeout at the place-search step also falls back to `repository.cachedForecast()`. `search` asks `CoordinateValidator` first: place name → geocode → fetch; coordinates → look up a name (best effort) → fetch, no `/search`; invalid → `.failed(message)` with no network call | Rapid searches, offline ± cache, refresh, no results (→ `.failed` for now), invalid coordinates | W-02, W-14, W-15, W-17, W-22, W-34 |
 | `ForecastDisplay` | Pure `Forecast` (+ temperature and wind unit from Settings; `updatedAt` = cache time when offline) → screen data, converted to the chosen units (°C→°F, m/s→km/h/m/s/mph); also `place` and `timeZone`; `dayDetails` (one per day: all values for `DayDetailView` in display units + that day's 24 hours, grouped in the place's time zone); `conditions` / `hours` / `days` mirror `CurrentConditionsView.Conditions`, `HourlyStripView.Hour`, `DailyForecastListView.Day` field by field; next 24 h from the current hour (`isNow`), `isToday` in the place's time zone, today's high/low, wind m/s → km/h | No day matches today (old data), fewer than 24 hours left | W-12, W-13, W-23 |
 | `FavouritesStore` / `SettingsStore` (`Data/Storage/`) | Save/load `[Favourite]` + `FavouriteSortOrder` / `UserSettings` as JSON in `UserDefaults` (injected, so tests use their own suite) | First launch (nothing saved) → empty list / defaults; corrupt data → same, never a crash | W-04–W-06, W-16 |
 | `Place` | Name + latitude/longitude | Non-ASCII names (å/ä/ö) | W-01, W-14 |
 | `Forecast` / `DayForecast` / `HourForecast` | Place, time zone, current conditions, all hours (time, °C, condition, precipitation %), 7 days (date, min/max °C, condition, precipitation, max wind m/s; optional: sunrise, sunset, feels-like max/min °C, max rain chance %, max UV, dominant wind direction °, max gust m/s) | Fewer than 7 days; local dates | W-12, W-13, W-19 |
 | `WeatherCondition` | WMO code → text + SF Symbol (outlined variants), in one place | Unknown code → `.unknown` | W-12 |
 | `OpenMeteoResponse` / `OpenMeteoErrorResponse` | Decodable mirror of the Open-Meteo JSON (`current`, `hourly`, `daily`) / HTTP 400 body `{error, reason}` | snake_case keys, missing fields, `null` | W-19, W-22 |
-| `WeatherRepository` · `LiveWeatherRepository` · `FakeWeatherRepository` | One entry point for ViewModels: `searchPlaces(matching:)`, `forecast(for:) -> LoadedForecast` (saves each fresh forecast; on `.offline`/`.timeout` returns the cached one instead of throwing), both `throws(NetworkError)`; `cachedForecast() async -> LoadedForecast?`; `placeName(latitude:longitude:) async -> String?` never throws (best effort: `nil` on any failure). Live = services + parsers, off the main actor (`searchPlaces` = `GeocodingService` + `GeocodingParser`); Fake = canned results/errors for tests and previews | `ParseError` → `.decoding`; network errors pass through (no cache yet) | W-22, W-23, W-30 |
+| `WeatherRepository` · `LiveWeatherRepository` · `FakeWeatherRepository` | One entry point for ViewModels: `searchPlaces(matching:)`, `forecast(for:) -> LoadedForecast` (saves each fresh forecast; on `.offline`/`.timeout` returns the cached one instead of throwing), both `throws(NetworkError)`; `cachedForecast() async -> LoadedForecast?`; `placeName(latitude:longitude:) async -> String?` never throws (best effort: `nil` on any failure). Live = services + parsers, off the main actor (`searchPlaces` = `GeocodingService` + `GeocodingParser`); Fake = canned results/errors for tests and previews | `ParseError` → `.decoding`; `.offline` / `.timeout` → cached forecast if there is one; other errors pass through | W-22, W-23, W-30 |
 | `FavouritesViewModel` | Owns the favourites list: `sortedFavourites`, `sortOrder` (saved), `isFavourite(_ place:)`, `toggleFavourite(_ place:)`, `recordOpen(_:)` (count +1), `remove(_:)`; every change saved through `FavouritesStore`. A place is a favourite when its coordinates are within 0.01° of a saved one | Same name in two countries (coordinates decide), empty list | W-04, W-05 |
 | `SettingsViewModel` | `settings: UserSettings`, saved through `SettingsStore` on every change | — | W-06 |
 
@@ -142,11 +146,11 @@ Layout, top to bottom:
 | State | What the user sees |
 | ----- | ------------------ |
 | First launch | Search field + "Find your weather — search for a city or enter coordinates." |
-| Loading | Previous data dimmed + spinner (never a blank screen) |
+| Loading | Spinner in place of the forecast (never a blank screen). Planned (step 9): previous data dimmed under the spinner (§8, 2026-11-24) |
 | Loaded | Full layout above |
 | Offline, cached | Yellow banner "You're offline. Showing data from HH:mm." above the **latest** saved forecast (any place; its own name is shown) — on app open, a favourite or a search |
 | Error, no cache | "Couldn't load the forecast" + "Try again" button |
-| No search results | "No places found for '…'" under the search field |
+| No search results | Error state "Couldn't load the forecast" + "No places match "…"." + "Try again". Planned (step 9): its own message under the search field |
 
 Landscape / iPad: current conditions on the left, hourly + 7-day list on the right.
 
@@ -166,21 +170,21 @@ Landscape / iPad: header on the left, hours + tiles on the right; tiles in adapt
 
 ### Screen: `FavouritesView` (Favourites tab) — W-04, W-05, W-18, W-33
 
-- **List** of favourite places: name, coordinates, and a subtitle that matches the sort order ("Opened 12 times" / "Added 3 Nov").
+- **List** of favourite places: name and a subtitle that matches the sort order — Most viewed: "Opened 12 times" · A–Z: coordinates "59.33° N  18.07° E" · Recently added: "Added 3 Nov".
 - **Sort menu** in the toolbar: Most viewed (default) · A–Z · Recently added. Ties in "Most viewed" fall back to A–Z; A–Z uses locale-aware comparison (å/ä/ö).
 - **Tap** a place → its open count goes up by 1 and the app switches to the Weather tab showing that place (loaded by its saved coordinates, no geocoding).
 - **★ on the start screen** adds/removes the shown place; the **chips** show the same saved list (a chip tap also counts as an open).
 - **First launch:** no favourites → no chips; the start screen shows Stockholm.
 - **Swipe to delete** removes a favourite.
 - **Empty state:** "No favourites yet — tap the star next to a place to add it here."
-- Data: `Favourite` (Model) with `dateAdded` and `openCount`; sorting in `FavouriteSortOrder` (Support tier). Persisted later by `FavouritesStore`.
+- Data: `Favourite` (Model) with `dateAdded` and `openCount`; sorting in `FavouriteSortOrder` (Support tier). Saved by `FavouritesStore` (`UserDefaults`).
 - Landscape / iPad: the list keeps a readable width.
 
 ### Screen: `SettingsView` (Settings tab) — W-06, W-18, W-32
 
 Grouped form, sections:
 
-1. **Units** — Temperature (°C / °F), Wind speed (km/h / m/s / mph). Sent to Open-Meteo as `temperature_unit` / `wind_speed_unit`.
+1. **Units** — Temperature (°C / °F), Wind speed (km/h / m/s / mph). Converted in `ForecastDisplay`; Open-Meteo is always asked for °C and km/h (§8, 2026-11-25).
 2. **Display** — Appearance (System / Light / Dark), Time format (24-hour / 12-hour).
 3. **Data** — Refresh forecast: "When older than" 15 / 30 / 60 min / Manual only. Footer explains: refreshed on open when the cached forecast is older (§7 #4).
 4. **About** — App version, data sources (Open-Meteo, geocode.maps.co).
@@ -196,15 +200,15 @@ Landscape / iPad: two columns — Units + Display on the left, Data + About on t
 3. ~~Which UI preferences in settings (units, theme, …)?~~ → temperature unit, wind unit, appearance, time format (§6, 2026-11-23)
 4. ~~Refresh rate: timer while visible, or refresh on open when cache is older than N min?~~ → refresh on open when older than N min (§6, 2026-11-23)
 5. ~~Minimum iOS version?~~ → **iOS 17.0** (§8, 2026-11-20)
-6. Which Open-Meteo fields to use — and which to ignore (oral Q3)?
-7. Move the repo out of iCloud-synced `~/Documents`? (iCloud offloads `.git` files → push fails)
+6. ~~Which Open-Meteo fields to use — and which to ignore (oral Q3)?~~ → see §9 Q3
+7. ~~Move the repo out of iCloud-synced `~/Documents`? (iCloud offloads `.git` files → push fails)~~ → moved to `~/Projects`
 
 ## 8. Decision log
 
 | Date | Decision | Alternatives | Reason | IDs |
 | ---- | -------- | ------------ | ------ | --- |
-| 2026-11-13 | iOS, Swift/SwiftUI | Android, React Native | Choosen because both team members have iphone and Mac | — |
-| 2026-11-13 | Open-Meteo + geocode.maps.co | SMHI | Get more data to work  | W-10, W-11 |
+| 2026-11-13 | iOS, Swift/SwiftUI | Android, React Native | Chosen because both team members have an iPhone and a Mac | — |
+| 2026-11-13 | Open-Meteo + geocode.maps.co | SMHI | More data than SMHI (current, hourly, daily) with worldwide coverage; Open-Meteo is free without a key | W-10, W-11 |
 | 2026-11-13 | MVVM + Repository, no packages | — | Course recommendation; testable layers | W-30 |
 | 2026-11-20 | Minimum iOS 17.0 | iOS 27.2 (Xcode default) | Lowest version with `@Observable` (`STYLE.md` §5); runs on more devices | W-25 |
 | 2026-11-20 | Swift Testing for unit tests, XCTest for UI tests | XCTest only | Xcode default; clearer `#expect` syntax; settles `STYLE.md` §7 | W-23 |
@@ -225,13 +229,20 @@ Landscape / iPad: two columns — Units + Display on the left, Data + About on t
 | 2026-11-23 | Fixed Stockholm as search result until the API key is set up | Real geocoding now | geocode.maps.co needs a key kept out of git (§7 #1); unblocks the forecast path | W-11 |
 | 2026-11-23 | Repository throws only `NetworkError`; `ParseError` becomes `.decoding` | Untyped `throws` (ViewModel checks both types) | One error type for the ViewModel; bad data means the same to the user either way | W-22 |
 | 2026-11-23 | Real API proven by an opt-in live test (`LiveWeatherRepositoryTests`, runs only with `LIVE_API_TESTS=1`) | Temporary console print in `WeatherApp.swift` | No app file touched (no conflict with the UI branch); repeatable before submission; normal runs stay offline | W-10, W-27 |
+| 2026-11-23 | Start screen = search + current + hourly + 7-day on one screen, tab bar for Favourites/Settings (§6) | Separate search screen before forecast | The weather is visible right away and a new search is one tap; a separate search screen adds a step every time. Tabs keep Favourites and Settings one tap away (W-05) | W-02, W-05, W-33 |
+| 2026-11-23 | Settings: °C/°F, wind unit, appearance, 12/24 h time | Fewer options | Units and time format differ between countries (°F/mph in the US, m/s in Sweden); appearance is expected in every iOS app. Each option is cheap because conversion happens in one place (`ForecastDisplay`) | W-06 |
+| 2026-11-23 | Refresh on open when cache older than 15/30/60 min or manual | Timer while screen visible | Forecasts change slowly; checking when the user comes back costs no battery or requests while the app sits open, and stays far below the APIs' rate limits | W-06, W-16 |
+| 2026-11-23 | Favourites sortable by most viewed, A–Z, recently added; tap switches to Weather tab | Fixed order; open forecast inside Favourites tab | W-05 is about quick access: the places used most come first by default, and the forecast lives in one screen (Weather) instead of being duplicated in two tabs | W-05 |
+| 2026-11-23 | Favourite sorting is Support tier (AI drafts, we explain) | Core tier | Sorting a list is standard Swift (`sorted`, `localizedStandardCompare`), not weather logic; Core is kept for parsing, state and error handling, which the oral exam focuses on | W-05, W-23 |
+| 2026-11-23 | Personal signing settings (`DEVELOPMENT_TEAM`, bundle ID) stay local, not committed | Commit one person's settings | Committing one person's team ID breaks signing for the other | W-25 |
 | 2026-11-24 | Silje's view types become typealiases of `ForecastDisplay`'s (`typealias Conditions = ForecastDisplay.Conditions`, …) | Converter functions copying display → view types | One type instead of two to keep in sync; fields were already identical, so `SampleData` still compiles | W-30 |
 | 2026-11-24 | Loading shows a plain spinner for now; the old forecast dimmed under a spinner (UI design) comes in plan step 9 | Change `State.loading` to carry the previous forecast now | Keeps today's change to wiring only; the `State` change is Core and needs its own decision | W-33 |
+| 2026-11-25 | `State.loading` carries the previous forecast (`loading(previous: ForecastDisplay?)`); `SearchView` shows it dimmed under a spinner | Plain spinner; `SearchView` remembers the last forecast in `@State` | Never a blank screen during a reload (W-33); the old data belongs to the state, so there is still one state at a time and the View holds no logic (STYLE §4) | W-33, W-34 |
 | 2026-11-24 | Geocoding key in git-ignored `Config/Secrets.xcconfig`, included by a committed `Config/WeatherApp.xcconfig` (`#include?`), read from `Info.plist` and injected via initialisers | Hard-coded in Swift; scheme environment variable | Hard-coding puts it in git; a scheme variable only works when launched from Xcode. Trade-off: the key is readable inside the built app — fine for a free key, never in git | W-11 |
 | 2026-11-24 | Coordinate input: comma, space or semicolon between numbers; comma or dot as decimal; anything with letters is a place name; `59,33,18,07` rejected as ambiguous | Only `lat, lon` with dot decimals | Nordic users type comma decimals; letters can't be coordinates, so no false positives | W-14, W-15 |
 | 2026-11-24 | Coordinates skip `/search`; the place name comes from `/reverse` and falls back to "59.33° N, 18.07° E" when the lookup fails | Always show degrees; make the lookup required | Shows a real town name; a missing key, rate limit or open sea never blocks the forecast | W-14, W-22 |
 | 2026-11-24 | `CoordinateValidator` lives in `ViewModel/`, called by `ForecastViewModel` | `Model/`; the View decides | It interprets user input for one screen; pure, so it is unit tested without SwiftUI | W-14, W-30 |
-| 2026-11-24 | Day detail shows feels-like, rain chance, UV, wind gusts + direction, sunrise/sunset | Only fields already fetched | _fill in_ | W-03 |
+| 2026-11-24 | Day detail shows feels-like, rain chance, UV, wind gusts + direction, sunrise/sunset | Only fields already fetched | A detail screen should add something the list doesn't show; these are the values people check when planning a day, and Open-Meteo gives them in the same request | W-03 |
 | 2026-11-24 | Extra daily fields optional in DTO, model and parser: a missing or short array gives `nil`, not a parse error | Required like the core fields; re-save the fixture | They are extras: one odd field must not hide the whole forecast (W-22); the shared fixture and tests stay valid | W-03, W-19, W-22 |
 | 2026-11-24 | `ForecastDisplay` groups each day's 24 hours for the detail screen, in the place's time zone | Detail view filters `hours` itself | Grouping is data transformation, so it belongs in the ViewModel layer and is unit tested (W-23) | W-03, W-13, W-30 |
 | 2026-11-25 | Favourites and settings saved as JSON in `UserDefaults` | SwiftData | Small data; `Favourite` and `UserSettings` are already `Codable`; tests use a separate suite | W-04–W-06, W-16 |
@@ -246,12 +257,6 @@ Landscape / iPad: two columns — Units + Display on the left, Data + About on t
 | 2026-11-25 | Unit shown as a smaller raised "°C"/"°F" next to the large temperature only | Unit on every number; a badge | Clear without clutter; the large number stays the focus (W-32) | W-06, W-32 |
 | 2026-11-25 | `ConnectivityMonitor` only shows the banner at once and reloads when the connection returns; requests are always tried, and the cache fallback still follows real errors | Skip the network when the monitor says offline | Apple advises against checking reachability before a request: the path can be wrong (Wi-Fi with a login page) and the request would never be tried | W-17, W-22 |
 | 2026-11-25 | ViewModel gets connectivity as an `AsyncStream<Bool>` through `init`; no protocol | `ConnectivityMonitoring` protocol + fake class | Tests hand in their own stream, so a protocol adds nothing (STYLE §1.4) | W-23, W-30 |
-| 2026-11-23 | Start screen = search + current + hourly + 7-day on one screen, tab bar for Favourites/Settings (§6) | Separate search screen before forecast | _fill in_ | W-02, W-05, W-33 |
-| 2026-11-23 | Settings: °C/°F, wind unit, appearance, 12/24 h time | Fewer options | _fill in_ | W-06 |
-| 2026-11-23 | Refresh on open when cache older than 15/30/60 min or manual | Timer while screen visible | _fill in_ | W-06, W-16 |
-| 2026-11-23 | Favourites sortable by most viewed, A–Z, recently added; tap switches to Weather tab | Fixed order; open forecast inside Favourites tab | _fill in_ | W-05 |
-| 2026-11-23 | Favourite sorting is Support tier (AI drafts, we explain) | Core tier | _fill in_ | W-05, W-23 |
-| 2026-11-23 | Personal signing settings (`DEVELOPMENT_TEAM`, bundle ID) stay local, not committed | Commit one person's settings | Committing one person's team ID breaks signing for the other | W-25 |
 
 ## 9. Oral exam map
 
@@ -266,24 +271,24 @@ Opening question is always **Q26**. Code = file → function; test = test functi
 | 5 | Data flow: search → screen | W-01 | `SearchView.submitSearch()` → `ForecastViewModel.search` → `run` → `load` → `loadForecast(for:)` → `CoordinateValidator.interpret` → `repository.searchPlaces` → `repository.forecast(for:)` → `ForecastDisplay` → `state = .loaded` → `SearchView.content` (README → *Data flow*) · test `searchShowsLoadedForecastFromRepository` |
 | 6 | Caching: what, when refreshed | W-16 | `Data/Storage/ForecastCache.swift` (latest forecast + `savedAt`, Application Support); saved in `LiveWeatherRepository.forecast(for:)` after every fresh load. Refreshed: on return to the app if older than the setting (`ContentView` `.onChange(of: scenePhase)` → `refreshIfOlder(than:)`), and when the connection returns (`watchConnectivity`) · tests `freshForecastIsSavedToTheCache`, `savedForecastIsLoadedWithItsTime` |
 | 7 | Where data lives at runtime | W-30 | In memory: `ForecastViewModel.state` + `shownForecast`, `FavouritesViewModel.favourites`, `SettingsViewModel.settings` — owned by `@State` in `App/WeatherApp.swift`. On disk: `latest-forecast.json`, `UserDefaults` (`FavouritesStore`, `SettingsStore`) |
-| 8 | Displayed data on new search | W-02 | `ForecastViewModel.load` sets `state = .loading` first, so the old forecast is replaced by a spinner, then by the new `.loaded` or `.failed` state (dimmed old data: plan step 9) |
+| 8 | Displayed data on new search | W-02 | `ForecastViewModel.load` sets `state = .loading(previous:)` with the forecast on screen (`displayedForecast`); `SearchView.content` shows it dimmed under a spinner (`loadingOverlay`), then the new `.loaded` or `.failed` state replaces it · test `loadingKeepsPreviousForecast` |
 | 9 | How UI learns of new data | W-30 | `@Observable` on `ForecastViewModel`: SwiftUI records which properties `SearchView.body` reads (`state`, `offlineSince`) and redraws when they change |
 | 10 | State kept after leaving app | W-16 | Kept: favourites + sort order, settings (`UserDefaults`), latest forecast (file). Not kept: search text, last query, selected tab · tests `savedFavouritesAndSortOrderAreLoadedAgain`, `savedSettingsAreLoadedAgain`, `savedForecastIsLoadedWithItsTime` |
-| 11 | Loading state, no stale data | W-33 | `ForecastViewModel.State` is an enum: exactly one of idle / loading / loaded / failed, so old data can't sit next to a spinner; `load` sets `.loading` before awaiting |
+| 11 | Loading state, no stale data | W-33 | `ForecastViewModel.State` is an enum: exactly one of idle / loading / loaded / failed. Old data is only shown as `.loading(previous:)` — dimmed, not tappable — so it can't be mistaken for the new answer; `load` sets `.loading` before awaiting |
 | 12 | Rapid searches / race condition | W-34 | `ForecastViewModel.run` cancels `searchTask`; `load` → `guard !Task.isCancelled` drops the late answer · test `newerSearchWinsWhenOlderAnswerArrivesLater` (mutation M6) |
 | 13 | Network timeout | W-22 | `URLSession` default (60 s); `URLError.timedOut` → `NetworkError(classifying:)` → `.timeout` → `isConnectionProblem` → cached forecast in `LiveWeatherRepository.forecast(for:)`, else "didn't answer in time" message · test `timeoutReturnsTheSavedForecast` (mutation M5) |
 | 14 | Network vs. API error | W-22 | Network: `.offline` / `.timeout` (no answer) → cache fallback. API: `.httpStatus(code:reason:)` with Open-Meteo's `reason` (`ForecastService.fetchForecast`, `OpenMeteoErrorResponse`) → error state, no fallback (`NetworkError.isConnectionProblem`) |
 | 15 | Offline, first launch | W-17 | No cache → `forecast(for:)` rethrows `.offline` → `.failed("You're offline…")` + Try again (`SearchView.content`) · test `searchShowsFailedStateWhenOffline`, `noSavedFileMeansNoCache`; UX-23 |
 | 16 | Offline, with cache | W-17 | `LiveWeatherRepository.forecast(for:)` returns the cache → `LoadedForecast.cachedAt` → `offlineSince` → `OfflineBannerView`; `ConnectivityMonitor` + `watchConnectivity` show it at once and reload on return · tests `offlineReturnsTheSavedForecastWithItsTime`, `cachedForecastSetsOfflineSinceAndShowsItsTime`, `goingOfflineShowsBannerWithShownForecastTime`, `comingBackOnlineReloadsLastRequest` |
 | 17 | Error state → UI | W-33 | `ForecastViewModel.message(for:)` → `.failed(message:)` → `SearchView.content` → `MessageStateView` ("Couldn't load the forecast" + message + **Try again** → `retry()`) · test `retryRepeatsLastSearchAfterFailure` |
-| 18 | Hardest error case | W-22 | _Our pick_ — candidate: offline during the **place search** step (no forecast to fall back from yet) → `ForecastViewModel.loadForecast(searchingFor:)` asks `repository.cachedForecast()` (SPEC §8, 2026-11-25) |
+| 18 | Hardest error case | W-22 | Offline during the **place search** step (no forecast to fall back from yet) → `ForecastViewModel.loadForecast(searchingFor:)` asks `repository.cachedForecast()` (SPEC §8, 2026-11-25) |
 | 19 | MVVM layers | W-30 | README → *Architecture* (layer table + diagram); folders `View/`, `ViewModel/`, `Data/`, `Model/` |
 | 20 | Why no network call in View | W-30 | STYLE §4; views only get a ViewModel, so the ViewModel can be tested with `FakeWeatherRepository` and no SwiftUI (`ForecastViewModelTests`), and one view change can't break networking |
 | 21 | Testable logic vs. UI | W-23 | Pure: `ForecastParser`, `GeocodingParser`, `CoordinateValidator`, `ForecastDisplay`; ViewModel via `FakeWeatherRepository`; views only via previews and UX scenarios (`docs/TEST_REPORT.md` §2, §4) |
 | 22 | Navigation; why not in ViewModel | W-30 | `ContentView` (`TabView` selection), `SearchView` (`NavigationStack` + `.navigationDestination(for: Date.self)`), `DailyForecastListView` (`NavigationLink(value:)`). ViewModels expose data, not routes (STYLE §4) |
 | 23 | Requirement ID → code | W-35 | This table + `W-xx` tags in comments (search the project for e.g. `W-17`); SPEC §6 lists IDs per component |
 | 24 | Adding hourly forecast support | W-13 | `ForecastService` (`hourly=` list) → `OpenMeteoResponse.Hourly` → `ForecastParser.parseHours` (zips parallel arrays) → `Forecast.hours` → `ForecastDisplay` (next 24 h, `dayDetails`) → `HourlyStripView` · tests `parserReturnsAllHoursForValidResponse`, `displayStartsHoursAtCurrentHourAndShowsTwentyFour` |
-| 25 | AI-written function, line by line | W-26 | _Our pick_ — candidates: `ForecastViewModel.watchConnectivity` / `connectionReturned` (2026-11-25), `GeocodingParser.place(from:)` |
+| 25 | AI-written function, line by line | W-26 | `Data/Parsing/GeocodingParser.swift` → `place(from:)` + `placeName(for:)` (2026-11-24): coordinate strings → `Double`, range check, name fallback · tests `GeocodingParserTests` |
 | 26 | **AI meta-instructions + one requirement** | W-26 | `SPEC.md` §1. Example trace **W-17**: SPEC §6 (`ConnectivityMonitor`, `ForecastCache`) → `LiveWeatherRepository.forecast(for:)` → `ForecastViewModel.watchConnectivity` → `OfflineBannerView` → tests in Q16 → UX-20–23 |
 | 27 | Pushing back on the AI | W-26 | `docs/LLM_PROCESS.md` |
 | 28 | Verifying AI code with a test | W-23 | `docs/TEST_REPORT.md` §3: mutation M8 showed the AI-written `firstOnlineUpdateDoesNotReload` didn't test its guard → test rewritten, now catches it |
@@ -294,15 +299,15 @@ Opening question is always **Q26**. Code = file → function; test = test functi
 
 1. One-line summary in the update log (§12).
 2. Update plan (§5), decision log (§8) and oral exam map (§9).
-3. Tick requirements in §3 — only those I can explain.
-4. Log the session in `docs/LLM_PROCESS.md` and add notes to `docs/REFLECTION.md` (I write both).
+3. Tick requirements in §3 — only those we can explain.
+4. Log the session in `docs/LLM_PROCESS.md` and add notes to `docs/REFLECTION.md` (we write both).
 
 ## 11. AI usage
 
 - **Tools:** Claude Code (Claude Opus 5.5)
 - **Context loaded each session:** `CLAUDE.md`, which imports `SPEC.md`, `STYLE.md`, `CONTEXT.md` and `README.md`
-- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`; Xcode project setup; start-screen UI boilerplate (`Design/`, `View/`); skeleton (`Model/`, `Data/`, `ViewModel/`) and its tests; geocoding and API-key setup; `ConnectivityMonitor` + `ForecastViewModel.watchConnectivity` (Core) and their tests; mutation runs, 3 gap tests and the `docs/TEST_REPORT.md` plan (results ours); README *Architecture* and the §9 map
-- **Code:** written by the AI after my approval, explained part by part (`STYLE.md` §2.1)
+- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`; Xcode project setup; start-screen UI boilerplate (`Design/`, `View/`); skeleton (`Model/`, `Data/`, `ViewModel/`) and its tests; geocoding and API-key setup; `ConnectivityMonitor` + `ForecastViewModel.watchConnectivity` and their tests; mutation runs, 3 gap tests and the `docs/TEST_REPORT.md`; README *Architecture* and the §9 map
+- **Code:** written by the AI after our approval, explained part by part.
 - **Prompts and who-wrote-what:** see `docs/LLM_PROCESS.md`
 
 Session start prompt:
@@ -321,3 +326,7 @@ Run the end-of-session ritual (SPEC.md §10) at the end.
 | 2026-11-20 | Created Xcode project (iOS 17.0, SwiftUI, Swift Testing); flattened layout to match `STYLE.md` §3; added `.gitignore`, layer folders with `.gitkeep`, `docs/`; build + tests pass on iPhone 17 simulator | W-30 |
 | 2026-11-23 | Re-saved Open-Meteo fixtures; designed start screen and added its spec (§6); built start-screen UI with sample data (`Design/` tokens, `View/Components/`, `View/Search/`) on branch `UI`; build passes; pushed to `origin/UI` (push first failed because iCloud had offloaded repo files) | W-10, W-02, W-32, W-33 |
 | 2026-11-23 | Skeleton (no views): real Open-Meteo forecast for fixed Stockholm through Model, DTO, parser, service, repository and ViewModel; 14 unit tests pass, opt-in live API test passes | W-10, W-12, W-19, W-21, W-22, W-23, W-30 |
+| 2026-11-24 | Branch clean-up: merged `UI` into `develop` (PR #4); combined our two AI logs into `docs/LLM_PROCESS.md` and removed `.gitkeep` from folders that now have files (PR #5); `develop` → `main` (PR #6) | W-26, W-30, W-36 |
+| 2026-11-24 | Start screen on live data: `SearchView` wired to `ForecastViewModel` + `LiveWeatherRepository`, "Try again" via `retry()` (PR #7); real city search via geocode.maps.co, API key in git-ignored `Config/Secrets.xcconfig` (PR #8); README setup guide (PR #9); release `develop` → `main` (PR #10); 19 unit tests pass | W-01, W-02, W-11, W-15, W-20, W-22, W-23, W-30, W-31 |
+| 2026-11-25 | Coordinate search (`CoordinateValidator`, reverse geocoding), day detail screen, favourites and settings saved in `UserDefaults`, offline cache (`ForecastCache`) + banner (PR #13 — merged into `main` by mistake, `develop` synced by PR #14); 47 unit tests pass | W-03–W-06, W-14–W-17, W-23 |
+| 2026-11-25 | `ConnectivityMonitor`: banner as soon as the connection drops, reload when it returns (PR #15); portrait/landscape checked on iPhone 17 and iPad Pro 11" (no code changes); 10 mutation tests — 4 survived at first, 3 new tests + 1 rewritten test now catch all 10; `docs/TEST_REPORT.md` plan with 30 UX scenarios (PR #16); README *Architecture* + §9 oral map (PR #17); removed a §8 row (PR #18); merged branches deleted; 53 unit + 2 UI tests pass | W-17, W-18, W-23, W-24, W-25, W-31, W-34, W-35 |

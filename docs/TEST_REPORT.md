@@ -37,16 +37,16 @@ Each row: break one line on purpose, run all unit tests, check that a test fails
 
 | ID | File:line | Mutation | Should be caught by | Result |
 | -- | --------- | -------- | ------------------- | ------ |
-| M1 | `CoordinateValidator.swift:34` | Latitude range `-90...90` → `-180...180` | `latitudeAbove90IsInvalid`, `searchWithInvalidCoordinatesFailsWithoutNetwork` | |
-| M2 | `GeocodingParser.swift:44` | Latitude range `-90...90` → `-180...180` | `parserSkipsResultsWithInvalidCoordinates` | |
-| M3 | `ForecastParser.swift:153` | Wind `speed / 3.6` → `speed` (no km/h → m/s) | `parserConvertsWindFromKilometresPerHourToMetresPerSecond` (+ 2 more) | |
-| M4 | `ForecastParser.swift:90` | Mismatched daily arrays: `throw` → `return []` | `parserThrowsWhenDailyArraysHaveDifferentLengths` | |
-| M5 | `NetworkError.swift:23` | `isConnectionProblem` without `.timeout` | `timeoutReturnsTheSavedForecast` | |
-| M6 | `ForecastViewModel.swift:170` | Remove `guard !Task.isCancelled` (stale answers allowed) | `newerSearchWinsWhenOlderAnswerArrivesLater` | |
-| M7 | `FavouritesViewModel.swift:27` | `samePlaceTolerance` `0.01` → `0.0` | `placeMatchesByCoordinatesNotByName` | |
-| M8 | `ForecastViewModel.swift:141` | Remove `guard isOffline` (reload on first "online") | `firstOnlineUpdateDoesNotReload` | |
-| M9 | `ForecastDisplay.swift:185` | Fahrenheit without `+ 32` | `displayConvertsTemperaturesToFahrenheit` | |
-| M10 | `LiveWeatherRepository.swift:86` | Parse failure `throw .decoding` → `.unknown` | `inconsistentDataWithHTTP200ThrowsDecoding` | |
+| M1 | `CoordinateValidator.swift:34` | Latitude range `-90...90` → `-180...180` | `latitudeAbove90IsInvalid`, `searchWithInvalidCoordinatesFailsWithoutNetwork` |`OK` |
+| M2 | `GeocodingParser.swift:44` | Latitude range `-90...90` → `-180...180` | `parserSkipsResultsWithInvalidCoordinates` | `OK`|
+| M3 | `ForecastParser.swift:153` | Wind `speed / 3.6` → `speed` (no km/h → m/s) | `parserConvertsWindFromKilometresPerHourToMetresPerSecond` (+ 2 more) | `OK`|
+| M4 | `ForecastParser.swift:90` | Mismatched daily arrays: `throw` → `return []` | `parserThrowsWhenDailyArraysHaveDifferentLengths` | OK|
+| M5 | `NetworkError.swift:23` | `isConnectionProblem` without `.timeout` | `timeoutReturnsTheSavedForecast` | OK|
+| M6 | `ForecastViewModel.swift:170` | Remove `guard !Task.isCancelled` (stale answers allowed) | `newerSearchWinsWhenOlderAnswerArrivesLater` | OK|
+| M7 | `FavouritesViewModel.swift:27` | `samePlaceTolerance` `0.01` → `0.0` | `placeMatchesByCoordinatesNotByName` |OK |
+| M8 | `ForecastViewModel.swift:141` | Remove `guard isOffline` (reload on first "online") | `firstOnlineUpdateDoesNotReload` | OK|
+| M9 | `ForecastDisplay.swift:185` | Fahrenheit without `+ 32` | `displayConvertsTemperaturesToFahrenheit` | OK|
+| M10 | `LiveWeatherRepository.swift:86` | Parse failure `throw .decoding` → `.unknown` | `inconsistentDataWithHTTP200ThrowsDecoding` |OK|
 
 Notes for us to fill in: which mutations survived the first run, and what we changed.
 
