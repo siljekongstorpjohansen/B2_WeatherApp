@@ -246,7 +246,6 @@ Landscape / iPad: two columns — Units + Display on the left, Data + About on t
 | 2026-11-25 | Unit shown as a smaller raised "°C"/"°F" next to the large temperature only | Unit on every number; a badge | Clear without clutter; the large number stays the focus (W-32) | W-06, W-32 |
 | 2026-11-25 | `ConnectivityMonitor` only shows the banner at once and reloads when the connection returns; requests are always tried, and the cache fallback still follows real errors | Skip the network when the monitor says offline | Apple advises against checking reachability before a request: the path can be wrong (Wi-Fi with a login page) and the request would never be tried | W-17, W-22 |
 | 2026-11-25 | ViewModel gets connectivity as an `AsyncStream<Bool>` through `init`; no protocol | `ConnectivityMonitoring` protocol + fake class | Tests hand in their own stream, so a protocol adds nothing (STYLE §1.4) | W-23, W-30 |
-| 2026-11-25 | AI writes Core code for plan steps a, c, d without approval per piece; it flags every Core change in chat | Propose → OK → write (STYLE §2.1) | _fill in_ | W-26 |
 | 2026-11-23 | Start screen = search + current + hourly + 7-day on one screen, tab bar for Favourites/Settings (§6) | Separate search screen before forecast | _fill in_ | W-02, W-05, W-33 |
 | 2026-11-23 | Settings: °C/°F, wind unit, appearance, 12/24 h time | Fewer options | _fill in_ | W-06 |
 | 2026-11-23 | Refresh on open when cache older than 15/30/60 min or manual | Timer while screen visible | _fill in_ | W-06, W-16 |
@@ -302,7 +301,7 @@ Opening question is always **Q26**. Code = file → function; test = test functi
 
 - **Tools:** Claude Code (Claude Opus 5.5)
 - **Context loaded each session:** `CLAUDE.md`, which imports `SPEC.md`, `STYLE.md`, `CONTEXT.md` and `README.md`
-- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`; Xcode project setup; start-screen UI boilerplate (`Design/`, `View/`); skeleton (`Model/`, `Data/`, `ViewModel/`) and its tests; geocoding and API-key setup; `ConnectivityMonitor` + `ForecastViewModel.watchConnectivity` (Core, without approval per piece — §8, 2026-11-25) and their tests; mutation runs, 3 gap tests and the `docs/TEST_REPORT.md` plan (results ours); README *Architecture* and the §9 map
+- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`; Xcode project setup; start-screen UI boilerplate (`Design/`, `View/`); skeleton (`Model/`, `Data/`, `ViewModel/`) and its tests; geocoding and API-key setup; `ConnectivityMonitor` + `ForecastViewModel.watchConnectivity` (Core) and their tests; mutation runs, 3 gap tests and the `docs/TEST_REPORT.md` plan (results ours); README *Architecture* and the §9 map
 - **Code:** written by the AI after my approval, explained part by part (`STYLE.md` §2.1)
 - **Prompts and who-wrote-what:** see `docs/LLM_PROCESS.md`
 
