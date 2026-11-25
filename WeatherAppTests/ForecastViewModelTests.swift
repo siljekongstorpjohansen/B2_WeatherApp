@@ -92,6 +92,60 @@ struct ForecastViewModelTests {
         #expect(display.conditions.updatedAt == savedAt)  // "Updated …" shows the data's age, not now
     }
 
+    // MARK: - ForecastViewModel (connectivity, W-17)
+
+    @Test func goingOfflineShowsBannerWithShownForecastTime() async throws {
+        let forecast = try loadFixtureForecast()
+        let (updates, connection) = AsyncStream.makeStream(of: Bool.self)
+        let viewModel = ForecastViewModel(
+            repository: FakeWeatherRepository(forecastResult: .success(forecast)),
+            connectivityUpdates: updates,
+            now: { Self.fixtureNow }
+        )
+        await viewModel.showForecast(for: .stockholm)  // fresh: no banner yet
+
+        connection.yield(false)
+        connection.finish()
+        await viewModel.watchConnectivity()
+
+        #expect(viewModel.offlineSince == Self.fixtureNow)  // when the shown data was fetched
+    }
+
+    @Test func comingBackOnlineReloadsLastRequest() async throws {
+        let forecast = try loadFixtureForecast()
+        // Two answers: the first load and the reload. A third call would throw `.unknown`.
+        let repository = SequenceRepository(forecastResults: [.success(forecast), .success(forecast)])
+        let (updates, connection) = AsyncStream.makeStream(of: Bool.self)
+        let viewModel = ForecastViewModel(repository: repository, connectivityUpdates: updates, now: { Self.fixtureNow })
+        await viewModel.showForecast(for: .stockholm)
+
+        connection.yield(false)  // banner on
+        connection.yield(true)   // back: reload
+        connection.finish()
+        await viewModel.watchConnectivity()
+
+        #expect(viewModel.offlineSince == nil)  // fresh data again, banner gone
+        let isLoaded = if case .loaded = viewModel.state { true } else { false }
+        #expect(isLoaded)
+    }
+
+    @Test func firstOnlineUpdateDoesNotReload() async throws {
+        let forecast = try loadFixtureForecast()
+        let savedAt = Self.fixtureNow.addingTimeInterval(-60 * 60)
+        // Cached data on screen (e.g. the first request timed out) and only one answer:
+        // an unwanted reload would throw `.unknown` and show the error state.
+        let repository = SequenceRepository(forecastResults: [.success(forecast)], cachedAt: savedAt)
+        let (updates, connection) = AsyncStream.makeStream(of: Bool.self)
+        let viewModel = ForecastViewModel(repository: repository, connectivityUpdates: updates, now: { Self.fixtureNow })
+        await viewModel.showForecast(for: .stockholm)
+
+        connection.yield(true)  // the monitor's first report at app start: it was never offline
+        connection.finish()
+        await viewModel.watchConnectivity()
+
+        #expect(viewModel.offlineSince == savedAt)  // still the cached data: no reload was tried
+    }
+
     // MARK: - ForecastDisplay (data transformation)
 
     @Test func displayStartsHoursAtCurrentHourAndShowsTwentyFour() throws {
@@ -180,9 +234,12 @@ private final class BundleToken {}
 /// An `actor` because it changes its own list from async calls.
 private actor SequenceRepository: WeatherRepository {
     private var forecastResults: [Result<Forecast, NetworkError>]
+    /// Set to pretend every answer came from the cache, saved at this time (W-17).
+    private let cachedAt: Date?
 
-    init(forecastResults: [Result<Forecast, NetworkError>]) {
+    init(forecastResults: [Result<Forecast, NetworkError>], cachedAt: Date? = nil) {
         self.forecastResults = forecastResults
+        self.cachedAt = cachedAt
     }
 
     func searchPlaces(matching query: String) async throws(NetworkError) -> [Place] {
@@ -191,7 +248,7 @@ private actor SequenceRepository: WeatherRepository {
 
     func forecast(for place: Place) async throws(NetworkError) -> LoadedForecast {
         guard !forecastResults.isEmpty else { throw .unknown }
-        return LoadedForecast(forecast: try forecastResults.removeFirst().get(), cachedAt: nil)
+        return LoadedForecast(forecast: try forecastResults.removeFirst().get(), cachedAt: cachedAt)
     }
 
     func cachedForecast() async -> LoadedForecast? {
