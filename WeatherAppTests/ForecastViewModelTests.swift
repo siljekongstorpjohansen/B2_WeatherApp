@@ -108,6 +108,26 @@ struct ForecastViewModelTests {
         #expect(display.place.name == "Bergen")  // the late Oslo answer was dropped (W-34, oral Q12)
     }
 
+    @Test func loadingKeepsPreviousForecast() async throws {
+        let repository = SlowOsloRepository(forecast: try loadFixtureForecast())
+        let viewModel = ForecastViewModel(repository: repository, now: { Self.fixtureNow })
+        await viewModel.search("Bergen")                             // answers at once
+        guard case .loaded(let bergen) = viewModel.state else {
+            Issue.record("Expected .loaded, got \(viewModel.state)")
+            return
+        }
+
+        let slowSearch = Task { await viewModel.search("Oslo") }    // its answer takes 300 ms
+        // Wait (max 1 s) until the Oslo search has started: parallel tests can delay it.
+        let deadline = ContinuousClock.now + .seconds(1)
+        while case .loaded = viewModel.state, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(viewModel.state == .loading(previous: bergen))      // old data dimmed, not blank (W-33)
+        await slowSearch.value
+    }
+
     // MARK: - ForecastViewModel (connectivity, W-17)
 
     @Test func goingOfflineShowsBannerWithShownForecastTime() async throws {
