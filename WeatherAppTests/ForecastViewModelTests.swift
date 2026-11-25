@@ -92,6 +92,59 @@ struct ForecastViewModelTests {
         #expect(display.conditions.updatedAt == savedAt)  // "Updated …" shows the data's age, not now
     }
 
+    // MARK: - ForecastViewModel (connectivity, W-17)
+
+    @Test func goingOfflineShowsBannerWithShownForecastTime() async throws {
+        let forecast = try loadFixtureForecast()
+        let (updates, connection) = AsyncStream.makeStream(of: Bool.self)
+        let viewModel = ForecastViewModel(
+            repository: FakeWeatherRepository(forecastResult: .success(forecast)),
+            connectivityUpdates: updates,
+            now: { Self.fixtureNow }
+        )
+        await viewModel.showForecast(for: .stockholm)  // fresh: no banner yet
+
+        connection.yield(false)
+        connection.finish()
+        await viewModel.watchConnectivity()
+
+        #expect(viewModel.offlineSince == Self.fixtureNow)  // when the shown data was fetched
+    }
+
+    @Test func comingBackOnlineReloadsLastRequest() async throws {
+        let forecast = try loadFixtureForecast()
+        // Two answers: the first load and the reload. A third call would throw `.unknown`.
+        let repository = SequenceRepository(forecastResults: [.success(forecast), .success(forecast)])
+        let (updates, connection) = AsyncStream.makeStream(of: Bool.self)
+        let viewModel = ForecastViewModel(repository: repository, connectivityUpdates: updates, now: { Self.fixtureNow })
+        await viewModel.showForecast(for: .stockholm)
+
+        connection.yield(false)  // banner on
+        connection.yield(true)   // back: reload
+        connection.finish()
+        await viewModel.watchConnectivity()
+
+        #expect(viewModel.offlineSince == nil)  // fresh data again, banner gone
+        let isLoaded = if case .loaded = viewModel.state { true } else { false }
+        #expect(isLoaded)
+    }
+
+    @Test func firstOnlineUpdateDoesNotReload() async throws {
+        let forecast = try loadFixtureForecast()
+        // Only one answer: an unwanted reload would throw `.unknown` and show the error state.
+        let repository = SequenceRepository(forecastResults: [.success(forecast)])
+        let (updates, connection) = AsyncStream.makeStream(of: Bool.self)
+        let viewModel = ForecastViewModel(repository: repository, connectivityUpdates: updates, now: { Self.fixtureNow })
+        await viewModel.showForecast(for: .stockholm)
+
+        connection.yield(true)  // the monitor's first report at app start
+        connection.finish()
+        await viewModel.watchConnectivity()
+
+        let isLoaded = if case .loaded = viewModel.state { true } else { false }
+        #expect(isLoaded)
+    }
+
     // MARK: - ForecastDisplay (data transformation)
 
     @Test func displayStartsHoursAtCurrentHourAndShowsTwentyFour() throws {
