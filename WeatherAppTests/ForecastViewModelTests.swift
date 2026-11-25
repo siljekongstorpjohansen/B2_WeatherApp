@@ -92,6 +92,22 @@ struct ForecastViewModelTests {
         #expect(display.conditions.updatedAt == savedAt)  // "Updated …" shows the data's age, not now
     }
 
+    @Test func newerSearchWinsWhenOlderAnswerArrivesLater() async throws {
+        let repository = SlowOsloRepository(forecast: try loadFixtureForecast())
+        let viewModel = ForecastViewModel(repository: repository, now: { Self.fixtureNow })
+
+        let olderSearch = Task { await viewModel.search("Oslo") }  // its answer takes 300 ms
+        try await Task.sleep(for: .milliseconds(50))                // let it reach the repository
+        await viewModel.search("Bergen")                             // answers at once
+        await olderSearch.value                                      // Oslo's late answer arrives now
+
+        guard case .loaded(let display) = viewModel.state else {
+            Issue.record("Expected .loaded, got \(viewModel.state)")
+            return
+        }
+        #expect(display.place.name == "Bergen")  // the late Oslo answer was dropped (W-34, oral Q12)
+    }
+
     // MARK: - ForecastViewModel (connectivity, W-17)
 
     @Test func goingOfflineShowsBannerWithShownForecastTime() async throws {
@@ -231,6 +247,38 @@ struct ForecastViewModelTests {
 private final class BundleToken {}
 
 /// Gives one forecast result per call, in order — so a test can fail first and succeed on retry.
+/// Finds any place by name; Oslo's forecast arrives 300 ms late — for the rapid-search test (W-34).
+private struct SlowOsloRepository: WeatherRepository {
+    let forecast: Forecast
+
+    func searchPlaces(matching query: String) async throws(NetworkError) -> [Place] {
+        [Place(name: query, latitude: 59.33, longitude: 18.07)]
+    }
+
+    func forecast(for place: Place) async throws(NetworkError) -> LoadedForecast {
+        if place.name == "Oslo" {
+            // Detached, so cancelling the search can't cut the wait short: the late answer really arrives.
+            await Task.detached { try? await Task.sleep(for: .milliseconds(300)) }.value
+        }
+        let answer = Forecast(
+            place: place,
+            timeZone: forecast.timeZone,
+            current: forecast.current,
+            hours: forecast.hours,
+            days: forecast.days
+        )
+        return LoadedForecast(forecast: answer, cachedAt: nil)
+    }
+
+    func cachedForecast() async -> LoadedForecast? {
+        nil
+    }
+
+    func placeName(latitude: Double, longitude: Double) async -> String? {
+        nil
+    }
+}
+
 /// An `actor` because it changes its own list from async calls.
 private actor SequenceRepository: WeatherRepository {
     private var forecastResults: [Result<Forecast, NetworkError>]
