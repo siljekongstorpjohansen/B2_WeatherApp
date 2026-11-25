@@ -2,14 +2,14 @@ import Foundation
 
 /// The user's preferences from the Settings screen (SPEC.md §6, W-06).
 /// Plain values only; `SettingsStore` will persist them later (plan step 8).
-struct UserSettings: Equatable, Codable {
+nonisolated struct UserSettings: Equatable, Codable, Sendable {
     var temperatureUnit: TemperatureUnit = .celsius
     var windSpeedUnit: WindSpeedUnit = .kilometresPerHour
     var appearance: Appearance = .system
     var timeFormat: TimeFormat = .twentyFourHour
     var refreshInterval: RefreshInterval = .thirtyMinutes
 
-    enum TemperatureUnit: String, CaseIterable, Codable, Identifiable {
+    nonisolated enum TemperatureUnit: String, CaseIterable, Codable, Identifiable, Sendable, SettingOption {
         case celsius, fahrenheit
         var id: Self { self }
 
@@ -19,9 +19,17 @@ struct UserSettings: Equatable, Codable {
             case .fahrenheit: "°F"
             }
         }
+
+        /// For VoiceOver, e.g. "34 degrees Fahrenheit".
+        var spokenName: String {
+            switch self {
+            case .celsius: "Celsius"
+            case .fahrenheit: "Fahrenheit"
+            }
+        }
     }
 
-    enum WindSpeedUnit: String, CaseIterable, Codable, Identifiable {
+    nonisolated enum WindSpeedUnit: String, CaseIterable, Codable, Identifiable, Sendable, SettingOption {
         case kilometresPerHour, metresPerSecond, milesPerHour
         var id: Self { self }
 
@@ -32,9 +40,18 @@ struct UserSettings: Equatable, Codable {
             case .milesPerHour: "mph"
             }
         }
+
+        /// For VoiceOver, e.g. "kilometres per hour".
+        var spokenName: String {
+            switch self {
+            case .kilometresPerHour: "kilometres per hour"
+            case .metresPerSecond: "metres per second"
+            case .milesPerHour: "miles per hour"
+            }
+        }
     }
 
-    enum Appearance: String, CaseIterable, Codable, Identifiable {
+    nonisolated enum Appearance: String, CaseIterable, Codable, Identifiable, Sendable, SettingOption {
         case system, light, dark
         var id: Self { self }
 
@@ -47,7 +64,7 @@ struct UserSettings: Equatable, Codable {
         }
     }
 
-    enum TimeFormat: String, CaseIterable, Codable, Identifiable {
+    nonisolated enum TimeFormat: String, CaseIterable, Codable, Identifiable, Sendable, SettingOption {
         case twentyFourHour, twelveHour
         var id: Self { self }
 
@@ -60,7 +77,7 @@ struct UserSettings: Equatable, Codable {
     }
 
     /// How old the cached forecast may get before it is refreshed on open (SPEC.md §7 #4).
-    enum RefreshInterval: Int, CaseIterable, Codable, Identifiable {
+    nonisolated enum RefreshInterval: Int, CaseIterable, Codable, Identifiable, Sendable, SettingOption {
         case fifteenMinutes = 15
         case thirtyMinutes = 30
         case sixtyMinutes = 60
@@ -81,4 +98,10 @@ struct UserSettings: Equatable, Codable {
             }
         }
     }
+}
+
+/// A choice on the Settings screen: every option has a short title, e.g. "°C" or "24-hour".
+/// Lets `SettingsView` build all its pickers with one function.
+nonisolated protocol SettingOption {
+    var title: String { get }
 }

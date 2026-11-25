@@ -49,7 +49,10 @@ nonisolated struct ForecastService {
             URLQueryItem(name: "hourly", value: "temperature_2m,weather_code,precipitation_probability"),
             URLQueryItem(
                 name: "daily",
-                value: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max"
+                value: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,"
+                    // W-03: extras for the day detail screen (optional in the DTO).
+                    + "sunrise,sunset,apparent_temperature_max,apparent_temperature_min,"
+                    + "precipitation_probability_max,uv_index_max,wind_direction_10m_dominant,wind_gusts_10m_max"
             ),
             URLQueryItem(name: "timezone", value: "auto"),
             URLQueryItem(name: "forecast_days", value: "7"),

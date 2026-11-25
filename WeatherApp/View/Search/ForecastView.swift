@@ -6,6 +6,8 @@ struct ForecastView: View {
     let conditions: CurrentConditionsView.Conditions
     let hours: [HourlyStripView.Hour]
     let days: [DailyForecastListView.Day]
+    /// The place's time zone, for the hour labels (SPEC.md §8).
+    var timeZone: TimeZone = .current
     let isFavourite: Bool
     var onToggleFavourite: () -> Void
 
@@ -26,7 +28,7 @@ struct ForecastView: View {
                 }
                 ScrollView {
                     VStack(spacing: Spacing.lg) {
-                        HourlyStripView(hours: hours)
+                        HourlyStripView(hours: hours, timeZone: timeZone)
                         DailyForecastListView(days: days)
                     }
                     .padding(.vertical, Spacing.sm)
@@ -37,7 +39,7 @@ struct ForecastView: View {
                 VStack(spacing: Spacing.lg) {
                     currentConditions
                         .padding(.vertical, Spacing.lg)
-                    HourlyStripView(hours: hours)
+                    HourlyStripView(hours: hours, timeZone: timeZone)
                     DailyForecastListView(days: days)
                 }
                 .padding(.bottom, Spacing.lg)

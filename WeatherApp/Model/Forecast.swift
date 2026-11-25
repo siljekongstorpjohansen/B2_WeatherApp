@@ -2,7 +2,7 @@ import Foundation
 
 /// Everything the app shows for one place: current conditions, hourly values and the next 7 days
 /// (W-02, W-12, W-13).
-nonisolated struct Forecast: Equatable, Sendable {
+nonisolated struct Forecast: Equatable, Sendable, Codable {
     let place: Place
     /// The place's own time zone (from Open-Meteo), so "today" means today *there*, not on the device.
     let timeZone: TimeZone
@@ -12,7 +12,7 @@ nonisolated struct Forecast: Equatable, Sendable {
     let days: [DayForecast]
 
     /// Conditions right now.
-    nonisolated struct Current: Equatable, Sendable {
+    nonisolated struct Current: Equatable, Sendable, Codable {
         let time: Date
         let temperatureCelsius: Double
         let condition: WeatherCondition
