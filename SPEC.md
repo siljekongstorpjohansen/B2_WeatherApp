@@ -256,38 +256,38 @@ Landscape / iPad: two columns — Units + Display on the left, Data + About on t
 
 ## 9. Oral exam map
 
-Opening question is always **Q26**. Fill in code location + test as components are done.
+Opening question is always **Q26**. Code = file → function; test = test function in `WeatherAppTests/`. File paths are under `WeatherApp/`.
 
 | Q | Topic | IDs | Code / test |
 | - | ----- | --- | ----------- |
-| 1 | Function making the API request | W-10 | |
-| 2 | JSON parsing code | W-19 | |
-| 3 | Fields used / ignored | W-12 | |
-| 4 | HTTP 200 but missing field | W-22 | |
-| 5 | Data flow: search → screen | W-01 | |
-| 6 | Caching: what, when refreshed | W-16 | |
-| 7 | Where data lives at runtime | W-30 | |
-| 8 | Displayed data on new search | W-02 | |
-| 9 | How UI learns of new data | W-30 | |
-| 10 | State kept after leaving app | W-16 | |
-| 11 | Loading state, no stale data | W-33 | |
-| 12 | Rapid searches / race condition | W-34 | |
-| 13 | Network timeout | W-22 | |
-| 14 | Network vs. API error | W-22 | |
-| 15 | Offline, first launch | W-17 | |
-| 16 | Offline, with cache | W-17 | |
-| 17 | Error state → UI | W-33 | |
-| 18 | Hardest error case | W-22 | |
-| 19 | MVVM layers | W-30 | |
-| 20 | Why no network call in View | W-30 | |
-| 21 | Testable logic vs. UI | W-23 | |
-| 22 | Navigation; why not in ViewModel | W-30 | |
-| 23 | Requirement ID → code | W-35 | |
-| 24 | Adding hourly forecast support | W-13 | |
-| 25 | AI-written function, line by line | W-26 | |
-| 26 | **AI meta-instructions + one requirement** | W-26 | `SPEC.md` §1 |
+| 1 | Function making the API request | W-10 | `Data/Network/ForecastService.swift` → `fetchForecast(for:)` (URL in `forecastURL(for:)`); geocoding: `GeocodingService.searchPlaces(matching:)` · test `LiveWeatherRepositoryTests` (opt-in, real API) |
+| 2 | JSON parsing code | W-19 | Decode: `Data/DTO/OpenMeteoResponse.swift` (`Decodable`, `CodingKeys`) in `fetchForecast`; map: `Data/Parsing/ForecastParser.swift` → `parse(_:for:)`, `parseHours`, `parseDays` · tests `ForecastParserTests` |
+| 3 | Fields used / ignored | W-12 | Asked for: `ForecastService.forecastURL(for:)` (`current`, `hourly`, `daily` lists); kept: `OpenMeteoResponse` fields. Ignored (not in the DTO): `latitude`/`longitude` echo, `elevation`, `generationtime_ms`, `utc_offset_seconds`, `timezone_abbreviation`, `*_units`, `current.interval`; geocoding ignores `address`, `boundingbox`, `importance` (`GeocodingResult`) |
+| 4 | HTTP 200 but missing field | W-22 | Missing key → `DecodingError` → `NetworkError(classifying:)` → `.decoding`; data that doesn't add up → `ForecastParser` throws → `LiveWeatherRepository.fetchAndParse` → `.decoding` → `ForecastViewModel.message(for:)` · tests `decodingErrorIsClassifiedAsDecoding`, `inconsistentDataWithHTTP200ThrowsDecoding`, `parserThrowsWhenDailyArraysHaveDifferentLengths` |
+| 5 | Data flow: search → screen | W-01 | `SearchView.submitSearch()` → `ForecastViewModel.search` → `run` → `load` → `loadForecast(for:)` → `CoordinateValidator.interpret` → `repository.searchPlaces` → `repository.forecast(for:)` → `ForecastDisplay` → `state = .loaded` → `SearchView.content` (README → *Data flow*) · test `searchShowsLoadedForecastFromRepository` |
+| 6 | Caching: what, when refreshed | W-16 | `Data/Storage/ForecastCache.swift` (latest forecast + `savedAt`, Application Support); saved in `LiveWeatherRepository.forecast(for:)` after every fresh load. Refreshed: on return to the app if older than the setting (`ContentView` `.onChange(of: scenePhase)` → `refreshIfOlder(than:)`), and when the connection returns (`watchConnectivity`) · tests `freshForecastIsSavedToTheCache`, `savedForecastIsLoadedWithItsTime` |
+| 7 | Where data lives at runtime | W-30 | In memory: `ForecastViewModel.state` + `shownForecast`, `FavouritesViewModel.favourites`, `SettingsViewModel.settings` — owned by `@State` in `App/WeatherApp.swift`. On disk: `latest-forecast.json`, `UserDefaults` (`FavouritesStore`, `SettingsStore`) |
+| 8 | Displayed data on new search | W-02 | `ForecastViewModel.load` sets `state = .loading` first, so the old forecast is replaced by a spinner, then by the new `.loaded` or `.failed` state (dimmed old data: plan step 9) |
+| 9 | How UI learns of new data | W-30 | `@Observable` on `ForecastViewModel`: SwiftUI records which properties `SearchView.body` reads (`state`, `offlineSince`) and redraws when they change |
+| 10 | State kept after leaving app | W-16 | Kept: favourites + sort order, settings (`UserDefaults`), latest forecast (file). Not kept: search text, last query, selected tab · tests `savedFavouritesAndSortOrderAreLoadedAgain`, `savedSettingsAreLoadedAgain`, `savedForecastIsLoadedWithItsTime` |
+| 11 | Loading state, no stale data | W-33 | `ForecastViewModel.State` is an enum: exactly one of idle / loading / loaded / failed, so old data can't sit next to a spinner; `load` sets `.loading` before awaiting |
+| 12 | Rapid searches / race condition | W-34 | `ForecastViewModel.run` cancels `searchTask`; `load` → `guard !Task.isCancelled` drops the late answer · test `newerSearchWinsWhenOlderAnswerArrivesLater` (mutation M6) |
+| 13 | Network timeout | W-22 | `URLSession` default (60 s); `URLError.timedOut` → `NetworkError(classifying:)` → `.timeout` → `isConnectionProblem` → cached forecast in `LiveWeatherRepository.forecast(for:)`, else "didn't answer in time" message · test `timeoutReturnsTheSavedForecast` (mutation M5) |
+| 14 | Network vs. API error | W-22 | Network: `.offline` / `.timeout` (no answer) → cache fallback. API: `.httpStatus(code:reason:)` with Open-Meteo's `reason` (`ForecastService.fetchForecast`, `OpenMeteoErrorResponse`) → error state, no fallback (`NetworkError.isConnectionProblem`) |
+| 15 | Offline, first launch | W-17 | No cache → `forecast(for:)` rethrows `.offline` → `.failed("You're offline…")` + Try again (`SearchView.content`) · test `searchShowsFailedStateWhenOffline`, `noSavedFileMeansNoCache`; UX-23 |
+| 16 | Offline, with cache | W-17 | `LiveWeatherRepository.forecast(for:)` returns the cache → `LoadedForecast.cachedAt` → `offlineSince` → `OfflineBannerView`; `ConnectivityMonitor` + `watchConnectivity` show it at once and reload on return · tests `offlineReturnsTheSavedForecastWithItsTime`, `cachedForecastSetsOfflineSinceAndShowsItsTime`, `goingOfflineShowsBannerWithShownForecastTime`, `comingBackOnlineReloadsLastRequest` |
+| 17 | Error state → UI | W-33 | `ForecastViewModel.message(for:)` → `.failed(message:)` → `SearchView.content` → `MessageStateView` ("Couldn't load the forecast" + message + **Try again** → `retry()`) · test `retryRepeatsLastSearchAfterFailure` |
+| 18 | Hardest error case | W-22 | _Our pick_ — candidate: offline during the **place search** step (no forecast to fall back from yet) → `ForecastViewModel.loadForecast(searchingFor:)` asks `repository.cachedForecast()` (SPEC §8, 2026-11-25) |
+| 19 | MVVM layers | W-30 | README → *Architecture* (layer table + diagram); folders `View/`, `ViewModel/`, `Data/`, `Model/` |
+| 20 | Why no network call in View | W-30 | STYLE §4; views only get a ViewModel, so the ViewModel can be tested with `FakeWeatherRepository` and no SwiftUI (`ForecastViewModelTests`), and one view change can't break networking |
+| 21 | Testable logic vs. UI | W-23 | Pure: `ForecastParser`, `GeocodingParser`, `CoordinateValidator`, `ForecastDisplay`; ViewModel via `FakeWeatherRepository`; views only via previews and UX scenarios (`docs/TEST_REPORT.md` §2, §4) |
+| 22 | Navigation; why not in ViewModel | W-30 | `ContentView` (`TabView` selection), `SearchView` (`NavigationStack` + `.navigationDestination(for: Date.self)`), `DailyForecastListView` (`NavigationLink(value:)`). ViewModels expose data, not routes (STYLE §4) |
+| 23 | Requirement ID → code | W-35 | This table + `W-xx` tags in comments (search the project for e.g. `W-17`); SPEC §6 lists IDs per component |
+| 24 | Adding hourly forecast support | W-13 | `ForecastService` (`hourly=` list) → `OpenMeteoResponse.Hourly` → `ForecastParser.parseHours` (zips parallel arrays) → `Forecast.hours` → `ForecastDisplay` (next 24 h, `dayDetails`) → `HourlyStripView` · tests `parserReturnsAllHoursForValidResponse`, `displayStartsHoursAtCurrentHourAndShowsTwentyFour` |
+| 25 | AI-written function, line by line | W-26 | _Our pick_ — candidates: `ForecastViewModel.watchConnectivity` / `connectionReturned` (2026-11-25), `GeocodingParser.place(from:)` |
+| 26 | **AI meta-instructions + one requirement** | W-26 | `SPEC.md` §1. Example trace **W-17**: SPEC §6 (`ConnectivityMonitor`, `ForecastCache`) → `LiveWeatherRepository.forecast(for:)` → `ForecastViewModel.watchConnectivity` → `OfflineBannerView` → tests in Q16 → UX-20–23 |
 | 27 | Pushing back on the AI | W-26 | `docs/LLM_PROCESS.md` |
-| 28 | Verifying AI code with a test | W-23 | |
+| 28 | Verifying AI code with a test | W-23 | `docs/TEST_REPORT.md` §3: mutation M8 showed the AI-written `firstOnlineUpdateDoesNotReload` didn't test its guard → test rewritten, now catches it |
 | 29 | Most effective prompt | W-26 | `docs/LLM_PROCESS.md` |
 | 30 | What I'd do differently | W-40 | `docs/REFLECTION.md` |
 
@@ -302,7 +302,7 @@ Opening question is always **Q26**. Fill in code location + test as components a
 
 - **Tools:** Claude Code (Claude Opus 5.5)
 - **Context loaded each session:** `CLAUDE.md`, which imports `SPEC.md`, `STYLE.md`, `CONTEXT.md` and `README.md`
-- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`; Xcode project setup; start-screen UI boilerplate (`Design/`, `View/`); skeleton (`Model/`, `Data/`, `ViewModel/`) and its tests
+- **AI-assisted so far:** first drafts of `SPEC.md`, `STYLE.md` and `CONTEXT.md`; Xcode project setup; start-screen UI boilerplate (`Design/`, `View/`); skeleton (`Model/`, `Data/`, `ViewModel/`) and its tests; geocoding and API-key setup; `ConnectivityMonitor` + `ForecastViewModel.watchConnectivity` (Core, without approval per piece — §8, 2026-11-25) and their tests; mutation runs, 3 gap tests and the `docs/TEST_REPORT.md` plan (results ours); README *Architecture* and the §9 map
 - **Code:** written by the AI after my approval, explained part by part (`STYLE.md` §2.1)
 - **Prompts and who-wrote-what:** see `docs/LLM_PROCESS.md`
 
