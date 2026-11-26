@@ -34,6 +34,33 @@ The work started with creatng teh SPEC.md, STYLE.md and CONTEXT.md. The first dr
 **Observations**
 - The AI takes in all teh information and often creates big complex documents. To make the documents clearer and more readable the prompts/instructions to the LLM needs to be clear and it needs information telling it to make it short and readable. 
 ---
+### Promt that worked well (used in all sessions (loke))
+
+1. **Repo check (Claude chat)**
+
+   > Summarise this WeatherApp repo state in under 150 words:
+   > - Current branch, and whether develop and main are in sync.
+   > - Uncommitted changes or untracked files.
+   > - Open PRs and their target branches.
+   > - Anything risky (wrong target, unpushed commits, conflicts).
+   >
+   > Don't suggest code changes yet.
+
+2. **Draft the Claude Code prompt (Claude chat)**
+
+   > Based on the repo summary above, draft a starting prompt for Claude Code. Include:
+   > - A placeholder for today's goal, which I will fill in.
+   > - Any setup the repo state requires before work can start.
+   > - Standing rules for git, deletions, and test reporting.
+   > - What to report back when done.
+   >
+   > Under 200 words.
+
+3. **Edit and run (Claude Code)**
+
+   I edit the draft to match what I want to work on today, then paste it into Claude Code.
+
+---
 ### 2026-11-20 — Xcode project setup (Loke)
 
 - **Task given to the AI:** I asked the AI to guide me step by step through creating the Xcode project and getting it up on GitHub.
