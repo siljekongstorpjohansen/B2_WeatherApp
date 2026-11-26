@@ -48,8 +48,6 @@ Each row: break one line on purpose, run all unit tests, check that a test fails
 | M9 | `ForecastDisplay.swift:185` | Fahrenheit without `+ 32` | `displayConvertsTemperaturesToFahrenheit` | ✓|
 | M10 | `LiveWeatherRepository.swift:86` | Parse failure `throw .decoding` → `.unknown` | `inconsistentDataWithHTTP200ThrowsDecoding` |✓|
 
-Notes for us to fill in: which mutations survived the first run, and what we changed.
-
 ## 4. UX scenarios (W-24)
 
 Run on the Simulator with the real APIs. "Wi-Fi off" = turn off the Mac's Wi-Fi (the Simulator uses the Mac's network).
