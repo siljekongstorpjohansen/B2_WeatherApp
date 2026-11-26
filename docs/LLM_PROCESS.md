@@ -3,7 +3,7 @@
 > Appendix D. Written by Loke and Silje — not by the AI (`SPEC.md` §1). One entry per session.
 
 ## 1. Introduction
-This document is made de describe how LLM models have been used in the work with this assignemen. The main LLm agent have been Claud. 
+This document is made de describe how LLM models have been used in the work with this assignemen. The main LLM agent have been Claud. 
 
 ## 2. Overview of AI Usage
 
