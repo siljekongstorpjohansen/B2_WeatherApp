@@ -135,6 +135,7 @@ The city search uses **geocode.maps.co**, which needs an API key. The key is kep
    ```
    GEOCODING_API_KEY = paste-the-key-here
    ```
+   To run on a real iPhone, also fill in `DEVELOPMENT_TEAM =` with your own Apple team ID. The Simulator doesn't need it.
 4. **Check that git ignores it:** `git status` must **not** list `Secrets.xcconfig`.
 5. **Build and run** in Xcode (⌘R). The start screen shows Stockholm's real weather; the favourite chips show their own cities.
 
