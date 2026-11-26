@@ -11,7 +11,7 @@ AI has been used as the prime generator of code for this project. After creating
 
 ---
 
-## 3. Detailed Documentation of AI Usage
+## 3. Detailed Documentation of AI Usage (Silje)
 Here is a list of exampled promts and how they have been used to create the weather app. 
 
 ### 3.1 Documentation files 
@@ -44,7 +44,7 @@ The work started with creatng teh SPEC.md, STYLE.md and CONTEXT.md. The first dr
   - Checking the project settings afterwards caught two typos in the file names, so the extra checks were worth it.
 
 ---
-### 3.2 Create the UI
+### 3.2 Create the UI (Silje)
 
 **Date:** [23.november 2026]
 
@@ -74,7 +74,7 @@ The purpose was to start creating the UI so it can be testes and also make it po
   - I didn't notice any mistakes from the AI in this session.
 
 ---
-### 3.3 Update the UI and create functional screens
+### 3.3 Update the UI and create functional screens (Silje)
 
 **Date:** [24.november 2026]
 
@@ -119,3 +119,21 @@ The purpose of todays session was to keep working on the UI to make the app work
 
 ---
 
+### 3.5 - Look trough and documentation 
+
+**Date:** [25.november 2026]
+
+**AI Tool:** [Claude]
+
+**Purpose:**
+This session was mostly a final check that everything in the code is working as it should and starting to get a better understanding of the code
+
+**Example of Prompts:**
+- Help explain how the code stores the data when closing the appp
+
+**What needed to be changed?**
+- Some of the anwsers given by the AI was long and hard to read and missed refences to the code. Often I asked for clearifications and where in the code the action is handled.  
+
+**Observations**
+- Using the AI to understand the code can give good anwsers when the prompt is good. Sometimes alot of information is given that not necesseraly helps me get a better understanding.
+- Getting more explanation from the AI when working with the code made it easier to revise in the end of the project.
